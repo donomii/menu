@@ -307,7 +307,7 @@ func updatefn(w *nucular.Window) {
 
 					cmd := name[1:]
 					result = goof.Command("/bin/sh", []string{"-c", cmd})
-					result = goof.Command("cmd", []string{"/c", cmd})
+					result = result + goof.Command("cmd", []string{"/c", cmd})
 				}
 
 				if strings.HasPrefix(name, "&") {
@@ -339,8 +339,9 @@ func updatefn(w *nucular.Window) {
 	}
 
 	if w.Button(label.T("Run your command"), false) {
-
-		result = goof.Command("cmd", []string{"/c", strings.Join(NodesToStringArray(currentThing[1:]), " ")})
+		cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+		result = goof.Command("cmd", []string{"/c", cmd})
+		result = result + goof.Command("/bin/sh", []string{"-c", cmd})
 
 		//})
 		//textView.SetText(result)
