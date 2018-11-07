@@ -148,7 +148,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 
 			cmd := currentNode.Name[1:]
 			if cmd == "lslR" {
-				result = strings.Join(lslR("."), "\n")
+				result = strings.Join(goof.LslR("."), "\n")
 			}
 			if cmd == "ls" {
 				result = strings.Join(ls("."), "\n")
@@ -204,26 +204,6 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 		panic(err)
 	}
 	return currentNode, currentThing, result
-}
-
-func lslR(dir string) []string {
-	out := []string{}
-	walkHandler := func(path string, info os.FileInfo, err error) error {
-		out = append(out, path)
-		return nil
-	}
-	//fmt.Println("These repositories need some attention:")
-	filepath.Walk(dir, walkHandler)
-	return out
-}
-
-func ls(dir string) []string {
-	out := []string{".."}
-	files, _ := ioutil.ReadDir(".")
-	for _, f := range files {
-		out = append(out, f.Name())
-	}
-	return out
 }
 
 func git() string {
