@@ -1,11 +1,17 @@
 package main
 
 import (
-	"image/color"
+	//"image/color"
 	"io/ioutil"
-	"path/filepath"
 	"runtime"
 	"strings"
+
+	"time"
+
+	"github.com/go-gl/gl/v3.2-core/gl"
+	"github.com/go-gl/glfw/v3.2/glfw"
+	"github.com/golang-ui/nuklear/nk"
+	"github.com/xlab/closer"
 
 	"github.com/gdamore/tcell"
 	"github.com/mattn/go-shellwords"
@@ -18,16 +24,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/donomii/glim"
+	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
 	"github.com/rivo/tview"
-
-	"github.com/donomii/nucular"
-	"github.com/donomii/nucular/rect"
-
-	"github.com/donomii/nucular/label"
-
-	nstyle "github.com/donomii/nucular/style"
 )
 
 var demoText = "hi"
@@ -148,10 +147,10 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 
 			cmd := currentNode.Name[1:]
 			if cmd == "lslR" {
-				result = strings.Join(lslR("."), "\n")
+				result = strings.Join(goof.LslR("."), "\n")
 			}
 			if cmd == "ls" {
-				result = strings.Join(ls("."), "\n")
+				result = strings.Join(goof.Ls("."), "\n")
 			}
 		}
 
@@ -206,26 +205,6 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 	return currentNode, currentThing, result
 }
 
-func lslR(dir string) []string {
-	out := []string{}
-	walkHandler := func(path string, info os.FileInfo, err error) error {
-		out = append(out, path)
-		return nil
-	}
-	//fmt.Println("These repositories need some attention:")
-	filepath.Walk(dir, walkHandler)
-	return out
-}
-
-func ls(dir string) []string {
-	out := []string{".."}
-	files, _ := ioutil.ReadDir(".")
-	for _, f := range files {
-		out = append(out, f.Name())
-	}
-	return out
-}
-
 func git() string {
 	return `\&ls
 	\&lslR
@@ -273,6 +252,7 @@ imapcli read 5
 
 var header string
 
+/*
 func updatefn(w *nucular.Window) {
 
 	txtSize := 9.6
@@ -280,11 +260,7 @@ func updatefn(w *nucular.Window) {
 		//col = color.RGBA{255, 0, 0, 0}
 		txtSize = 30
 	}
-	/*
-		for _, v := range w.Input().Keyboard.Keys {
-			log.Println("%+v", v.)
-		}
-	*/
+
 	if w.Input().Keyboard.Text != "" {
 		//log.Println(w.Input().Keyboard.Text)
 		demoText = demoText + w.Input().Keyboard.Text
@@ -296,7 +272,7 @@ func updatefn(w *nucular.Window) {
 	w.Label(header, "LC")
 	w.Row(30).Dynamic(1)
 	w.LabelColored(result, "LC", col)
-	/*
+
 		img, _ := glim.DrawStringRGBA(txtSize, col, "Hello again", "f1.ttf")
 		newH := img.Bounds().Max.Y
 		w.Row(newH).Dynamic(1)
@@ -308,7 +284,7 @@ func updatefn(w *nucular.Window) {
 		img5 := img4
 		w.Image(img5)
 		w.Cmds().DrawImage(rect.Rect{50, 100, 200, 200}, img5)
-	*/
+
 
 	for _, vv := range currentNode.SubNodes {
 		//node := vv.SubNodes[i]
@@ -423,6 +399,7 @@ func updatefn(w *nucular.Window) {
 	//log.Printf("%+v", w.Input())
 
 }
+*/
 
 func makeStartNode() *Node {
 	n := &Node{"Start", []*Node{}}
@@ -430,8 +407,21 @@ func makeStartNode() *Node {
 	return n
 }
 
+type Option uint8
+
+type State struct {
+	bgColor nk.Color
+	prop    int32
+	opt     Option
+}
+
 func main() {
-	runtime.GOMAXPROCS(2)
+
+	winWidth := 400
+	winHeight := 500
+
+	runtime.GOMAXPROCS(1)
+	runtime.LockOSThread()
 	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
@@ -443,20 +433,197 @@ func main() {
 	//currentNode = addTextNodes(currentNode,grep("git", doCommand("fish", []string{"-c", "history"})))
 	currentThing = []*Node{currentNode}
 	//result := ""
-	wnd := nucular.NewMasterWindow(0, "MyWindow", updatefn)
-	var theme nstyle.Theme = nstyle.DarkTheme
-	scaling := 0.9
-	if runtime.GOOS == "darwin" {
-		scaling = 1.8
+
+	//Nuklear
+
+	if err := glfw.Init(); err != nil {
+		closer.Fatalln(err)
 	}
-	wnd.SetStyle(nstyle.FromTheme(theme, scaling))
-	wnd.Main()
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 2)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+	win, err := glfw.CreateWindow(winWidth, winHeight, "Nuklear Demo", nil, nil)
+	if err != nil {
+		closer.Fatalln(err)
+	}
+	win.MakeContextCurrent()
+
+	width, height := win.GetSize()
+	log.Printf("glfw: created window %dx%d", width, height)
+
+	if err := gl.Init(); err != nil {
+		closer.Fatalln("opengl: init failed:", err)
+	}
+	gl.Viewport(0, 0, int32(width-1), int32(height-1))
+
+	ctx := nk.NkPlatformInit(win, nk.PlatformInstallCallbacks)
+
+	atlas := nk.NewFontAtlas()
+	nk.NkFontStashBegin(&atlas)
+	data, err := ioutil.ReadFile("FreeSans.ttf")
+	if err != nil {
+		panic("Could not find file")
+	}
+	sansFont := nk.NkFontAtlasAddFromBytes(atlas, data, 16, nil)
+	// sansFont := nk.NkFontAtlasAddDefault(atlas, 16, nil)
+	nk.NkFontStashEnd()
+	if sansFont != nil {
+		nk.NkStyleSetFont(ctx, sansFont.Handle())
+	}
+
+	exitC := make(chan struct{}, 1)
+	doneC := make(chan struct{}, 1)
+	closer.Bind(func() {
+		close(exitC)
+		<-doneC
+	})
+
+	state := &State{
+		bgColor: nk.NkRgba(28, 48, 62, 255),
+	}
+	fpsTicker := time.NewTicker(time.Second / 30)
+	for {
+		select {
+		case <-exitC:
+			nk.NkPlatformShutdown()
+			glfw.Terminate()
+			fpsTicker.Stop()
+			close(doneC)
+			return
+		case <-fpsTicker.C:
+			if win.ShouldClose() {
+				close(exitC)
+				continue
+			}
+			glfw.PollEvents()
+			gfxMain(win, ctx, state)
+		}
+	}
+
+	//End Nuklear
+
 	if ui {
 		for {
 
 			currentNode, currentThing, result = doui(currentNode, currentThing, result)
 		}
 	}
+}
+
+func b(v int32) bool {
+	return v == 1
+}
+
+func fflag(v bool) int32 {
+	if v {
+		return 1
+	}
+	return 0
+}
+
+func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
+
+	maxVertexBuffer := 512 * 1024
+	maxElementBuffer := 128 * 1024
+
+	nk.NkPlatformNewFrame()
+
+	// Layout
+	bounds := nk.NkRect(50, 50, 230, 250)
+	update := nk.NkBegin(ctx, "Demo", bounds,
+		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
+
+	if update > 0 {
+		nk.NkLayoutRowStatic(ctx, 30, 80, 1)
+		{
+			if nk.NkButtonLabel(ctx, "lalala") > 0 {
+				log.Println("[INFO] button pressed!")
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Run your command") {
+				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+				result = goof.Command("cmd", []string{"/c", cmd})
+				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+
+				//})
+				//textView.SetText(result)
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Run your interactive command") {
+
+				//result = doQC(NodesToStringArray(currentThing[1:]))
+				goof.QCI(NodesToStringArray(currentThing[1:]))
+
+				//textView.SetText(result)
+				//app.Run()
+			}
+			if 0 < nk.NkButtonLabel(ctx, "Change directory") {
+
+				//result = doQC(NodesToStringArray(currentThing[1:]))
+				path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
+				os.Chdir(path)
+				currentNode = makeStartNode()
+				currentThing = []*Node{currentNode}
+
+				//textView.SetText(result)
+				//app.Run()
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Go back") {
+				//app.Stop()
+				if len(currentThing) > 1 {
+					currentNode = currentThing[len(currentThing)-2]
+					currentThing = currentThing[:len(currentThing)-1]
+					//header.SetText(strings.Join(NodesToStringArray(currentThing), " "))
+					//list.Clear()
+					//populateList(list)
+				}
+			}
+			if 0 < nk.NkButtonLabel(ctx, "Press to exit") {
+
+				fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
+				app.Stop()
+				os.Exit(0)
+			}
+		}
+
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+		{
+			nk.NkPropertyInt(ctx, "Compression:", 0, &state.prop, 100, 10, 1)
+		}
+		nk.NkLayoutRowDynamic(ctx, 20, 1)
+		{
+			nk.NkLabel(ctx, "background:", nk.TextLeft)
+		}
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+		{
+			size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
+			if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
+				nk.NkLayoutRowDynamic(ctx, 120, 1)
+				state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
+				nk.NkLayoutRowDynamic(ctx, 25, 1)
+				r, g, b, a := state.bgColor.RGBAi()
+				r = nk.NkPropertyi(ctx, "#R:", 0, r, 255, 1, 1)
+				g = nk.NkPropertyi(ctx, "#G:", 0, g, 255, 1, 1)
+				b = nk.NkPropertyi(ctx, "#B:", 0, b, 255, 1, 1)
+				a = nk.NkPropertyi(ctx, "#A:", 0, a, 255, 1, 1)
+				state.bgColor.SetRGBAi(r, g, b, a)
+				nk.NkComboEnd(ctx)
+			}
+		}
+	}
+	nk.NkEnd(ctx)
+
+	// Render
+	bg := make([]float32, 4)
+	nk.NkColorFv(bg, state.bgColor)
+	width, height := win.GetSize()
+	gl.Viewport(0, 0, int32(width), int32(height))
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.ClearColor(bg[0], bg[1], bg[2], bg[3])
+	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
+	win.SwapBuffers()
 }
 
 type Node struct {
