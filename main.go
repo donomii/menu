@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"image/color"
 	"io/ioutil"
 	"runtime"
 	"strings"
@@ -312,10 +311,10 @@ func updatefn(w *nucular.Window) {
 
 					cmd := name[1:]
 					if cmd == "lslR" {
-						result = strings.Join(lslR("."), "\n")
+						result = strings.Join(goof.LslR("."), "\n")
 					}
 					if cmd == "ls" {
-						result = strings.Join(ls("."), "\n")
+						result = strings.Join(goof.Ls("."), "\n")
 					}
 				}
 
