@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"strings"
 
+	//"unsafe"
+
 	"time"
 
 	"github.com/go-gl/gl/v3.2-core/gl"
@@ -30,6 +32,8 @@ import (
 
 var demoText = "hi"
 var result = ""
+var EditStr = `lalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalala`
+var EditBytes []byte
 var tokens [][]string
 
 var autoSync bool
@@ -265,10 +269,10 @@ type State struct {
 	opt     Option
 }
 
-func main() {
+var winWidth = 900
+var winHeight = 900
 
-	winWidth := 800
-	winHeight := 600
+func main() {
 
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
@@ -384,10 +388,9 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	update := nk.NkBegin(ctx, "Menu", bounds,
 		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
 	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
-	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(800, 600))
+	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
 
 	if update > 0 {
-
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -403,108 +406,8 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		nk.NkLayoutRowDynamic(ctx, 400, 2)
-		{
-			nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
-			nk.NkLayoutRowDynamic(ctx, 20, 1)
-			{
+		QuickFileEditor(ctx)
 
-				for _, vv := range currentNode.SubNodes {
-					//node := vv.SubNodes[i]
-					name := vv.Name
-					v := vv
-					if nk.NkButtonLabel(ctx, name) > 0 {
-						if !strings.HasPrefix(name, "!") && !strings.HasPrefix(name, "&") {
-							currentThing = append(currentThing, v)
-							currentNode = v
-						} else {
-
-							log.Println("Running command", name)
-							if strings.HasPrefix(name, "!") {
-
-								//It's a shell command
-
-								cmd := name[1:]
-								result = goof.Command("/bin/sh", []string{"-c", cmd})
-								result = result + goof.Command("cmd", []string{"/c", cmd})
-							}
-
-							if strings.HasPrefix(name, "&") {
-
-								//It's an internal command
-
-								cmd := name[1:]
-								if cmd == "lslR" {
-									result = strings.Join(goof.LslR("."), "\n")
-								}
-								if cmd == "ls" {
-									result = strings.Join(goof.Ls("."), "\n")
-								}
-							}
-
-							if result != "" {
-								log.Println("Ran command, got result", result)
-								execNode := Node{"Exec", []*Node{}}
-								addTextNodes(&execNode, result)
-								currentNode = &execNode
-							}
-
-						}
-
-						//list.Clear()
-						//populateList(list)
-						//app.Stop()
-					}
-				}
-
-				if 0 < nk.NkButtonLabel(ctx, "Run command") {
-					cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
-					result = goof.Command("cmd", []string{"/c", cmd})
-					result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-				}
-
-				if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
-					goof.QCI(NodesToStringArray(currentThing[1:]))
-
-				}
-				if 0 < nk.NkButtonLabel(ctx, "Change directory") {
-					path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
-					os.Chdir(path)
-					currentNode = makeStartNode()
-					currentThing = []*Node{currentNode}
-				}
-
-				if 0 < nk.NkButtonLabel(ctx, "Go back") {
-					if len(currentThing) > 1 {
-						currentNode = currentThing[len(currentThing)-2]
-						currentThing = currentThing[:len(currentThing)-1]
-					}
-				}
-				if 0 < nk.NkButtonLabel(ctx, "Exit") {
-
-					fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
-					app.Stop()
-					os.Exit(0)
-				}
-			}
-			nk.NkGroupEnd(ctx)
-
-			nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
-			nk.NkLayoutRowDynamic(ctx, 10, 1)
-			{
-				results := strings.Split(result, "\n")
-				for _, v := range results {
-					//nk.NkLabel(ctx, v, nk.WindowBorder)
-					if nk.NkButtonLabel(ctx, v) > 0 {
-						n := &Node{v, []*Node{}}
-						currentThing = append(currentThing, n)
-
-					}
-				}
-
-			}
-			nk.NkGroupEnd(ctx)
-		}
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -521,6 +424,9 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 		}
 		nk.NkLayoutRowDynamic(ctx, 25, 1)
 		{
+
+			//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
+
 			size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
 			if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
 				nk.NkLayoutRowDynamic(ctx, 120, 1)
@@ -535,6 +441,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				nk.NkComboEnd(ctx)
 			}
 		}
+
 	}
 	nk.NkEnd(ctx)
 
@@ -547,6 +454,146 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	gl.ClearColor(bg[0], bg[1], bg[2], bg[3])
 	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
 	win.SwapBuffers()
+}
+
+func ButtonBox(ctx *nk.Context) {
+	nk.NkLayoutRowDynamic(ctx, 400, 2)
+	{
+		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
+		nk.NkLayoutRowDynamic(ctx, 20, 1)
+		{
+			for _, vv := range currentNode.SubNodes {
+				//node := vv.SubNodes[i]
+				name := vv.Name
+				v := vv
+				if nk.NkButtonLabel(ctx, name) > 0 {
+					if !strings.HasPrefix(name, "!") && !strings.HasPrefix(name, "&") {
+						currentThing = append(currentThing, v)
+						currentNode = v
+					} else {
+
+						log.Println("Running command", name)
+						if strings.HasPrefix(name, "!") {
+
+							//It's a shell command
+
+							cmd := name[1:]
+							result = goof.Command("/bin/sh", []string{"-c", cmd})
+							result = result + goof.Command("cmd", []string{"/c", cmd})
+						}
+
+						if strings.HasPrefix(name, "&") {
+
+							//It's an internal command
+
+							cmd := name[1:]
+							if cmd == "lslR" {
+								result = strings.Join(goof.LslR("."), "\n")
+							}
+							if cmd == "ls" {
+								result = strings.Join(goof.Ls("."), "\n")
+							}
+						}
+
+						if result != "" {
+							log.Println("Ran command, got result", result)
+							execNode := Node{"Exec", []*Node{}}
+							addTextNodes(&execNode, result)
+							currentNode = &execNode
+						}
+
+					}
+
+					//list.Clear()
+					//populateList(list)
+					//app.Stop()
+				}
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Run command") {
+				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+				result = goof.Command("cmd", []string{"/c", cmd})
+				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
+				goof.QCI(NodesToStringArray(currentThing[1:]))
+
+			}
+			if 0 < nk.NkButtonLabel(ctx, "Change directory") {
+				path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
+				os.Chdir(path)
+				currentNode = makeStartNode()
+				currentThing = []*Node{currentNode}
+			}
+
+			if 0 < nk.NkButtonLabel(ctx, "Go back") {
+				if len(currentThing) > 1 {
+					currentNode = currentThing[len(currentThing)-2]
+					currentThing = currentThing[:len(currentThing)-1]
+				}
+			}
+			if 0 < nk.NkButtonLabel(ctx, "Exit") {
+
+				fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
+				app.Stop()
+				os.Exit(0)
+			}
+		}
+		nk.NkGroupEnd(ctx)
+
+		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
+		nk.NkLayoutRowDynamic(ctx, 10, 1)
+		{
+			results := strings.Split(result, "\n")
+			for _, v := range results {
+				//nk.NkLabel(ctx, v, nk.WindowBorder)
+				if nk.NkButtonLabel(ctx, v) > 0 {
+					n := &Node{v, []*Node{}}
+					currentThing = append(currentThing, n)
+
+				}
+			}
+
+		}
+		nk.NkGroupEnd(ctx)
+	}
+
+}
+
+func QuickFileEditor(ctx *nk.Context) {
+
+	nk.NkLayoutRowDynamic(ctx, 400, 2)
+	{
+		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
+		nk.NkLayoutRowDynamic(ctx, 20, 1)
+		{
+
+			files := goof.Ls(".")
+			for _, vv := range files {
+				if nk.NkButtonLabel(ctx, vv) > 0 {
+					var err error
+					EditBytes, err = ioutil.ReadFile(vv)
+					log.Println(err)
+				}
+
+			}
+		}
+		nk.NkGroupEnd(ctx)
+
+		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
+
+		//nk.NkLayoutRowStatic(ctx, 100, 100, 3)
+		nk.NkLayoutRowDynamic(ctx, 400, 1)
+		{
+			if EditBytes != nil {
+				var lenStr = int32(len(EditBytes))
+				nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii)
+			}
+		}
+		nk.NkGroupEnd(ctx)
+	}
+
 }
 
 type Node struct {
