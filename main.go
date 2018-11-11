@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"strings"
 
+	"golang.org/x/image/font/gofont/goregular"
+
 	//"unsafe"
 
 	"time"
@@ -315,11 +317,12 @@ func main() {
 
 	atlas := nk.NewFontAtlas()
 	nk.NkFontStashBegin(&atlas)
-	data, err := ioutil.ReadFile("FreeSans.ttf")
+	/*data, err := ioutil.ReadFile("FreeSans.ttf")
 	if err != nil {
 		panic("Could not find file")
-	}
-	sansFont := nk.NkFontAtlasAddFromBytes(atlas, data, 16, nil)
+	}*/
+
+	sansFont := nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 16, nil)
 	// sansFont := nk.NkFontAtlasAddDefault(atlas, 16, nil)
 	nk.NkFontStashEnd()
 	if sansFont != nil {
@@ -563,7 +566,7 @@ func ButtonBox(ctx *nk.Context) {
 
 func QuickFileEditor(ctx *nk.Context) {
 
-	nk.NkLayoutRowDynamic(ctx, 400, 2)
+	nk.NkLayoutRowDynamic(ctx, float32(winHeight), 2)
 	{
 		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
 		nk.NkLayoutRowDynamic(ctx, 20, 1)
@@ -584,11 +587,12 @@ func QuickFileEditor(ctx *nk.Context) {
 		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
 
 		//nk.NkLayoutRowStatic(ctx, 100, 100, 3)
-		nk.NkLayoutRowDynamic(ctx, 400, 1)
+		nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
 		{
 			if EditBytes != nil {
-				var lenStr = int32(len(EditBytes))
-				nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii)
+				//var lenStr = int32(len(EditBytes))
+				//nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii) FIXME
+				nk.NkLabelWrap(ctx, string(EditBytes))
 			}
 		}
 		nk.NkGroupEnd(ctx)
