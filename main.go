@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"runtime"
 	"strings"
@@ -47,6 +48,17 @@ var workerChan chan string
 
 var currentNode *Node
 var currentThing []*Node
+
+type Menu []string
+
+var menuData = `
+[
+"!arc list",
+"Option 2",
+"Option 3"
+]`
+
+var myMenu Menu
 
 func NodesToStringArray(ns []*Node) []string {
 	var out []string
@@ -161,7 +173,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 
 		if result != "" {
 			execNode := Node{"Exec", []*Node{}}
-			addTextNodes(&execNode, result)
+			addTextNodesFromString(&execNode, result)
 			currentNode = &execNode
 		}
 		for i, vv := range currentNode.SubNodes {
@@ -259,8 +271,13 @@ var header string
 
 func makeStartNode() *Node {
 	n := &Node{"Command:", []*Node{}}
-	addTextNodes(n, git())
+
 	return n
+}
+
+type Form struct {
+	children []*Form
+	val      string
 }
 
 type Option uint8
@@ -282,8 +299,16 @@ func main() {
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
 
-	currentNode = makeStartNode()
+	jsonerr := json.Unmarshal([]byte(menuData), &myMenu)
+	if jsonerr != nil {
+		fmt.Println(jsonerr)
+	}
+	fmt.Println("Menu: ", myMenu)
 
+	currentNode = makeStartNode()
+	currentNode = addTextNodesFromCommands(currentNode, myMenu)
+
+	//addTextNodesFromString(n, git())
 	//    currentNode = addHistoryNodes()
 
 	//currentNode = addTextNodes(currentNode,grep("git", doCommand("fish", []string{"-c", "history"})))
@@ -409,8 +434,8 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		QuickFileEditor(ctx)
-
+		//QuickFileEditor(ctx)
+		ButtonBox(ctx)
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -501,7 +526,7 @@ func ButtonBox(ctx *nk.Context) {
 						if result != "" {
 							log.Println("Ran command, got result", result)
 							execNode := Node{"Exec", []*Node{}}
-							addTextNodes(&execNode, result)
+							addTextNodesFromString(&execNode, result)
 							currentNode = &execNode
 						}
 
@@ -662,8 +687,12 @@ func addHistoryNodes() *Node {
 	return &startNode
 }
 
-func addTextNodes(startNode *Node, src string) *Node {
+func addTextNodesFromString(startNode *Node, src string) *Node {
 	lines := strings.Split(src, "\n")
+	return addTextNodesFromStringList(startNode, lines)
+}
+
+func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
 		args, _ := shellwords.Parse(l)
@@ -678,9 +707,23 @@ func addTextNodes(startNode *Node, src string) *Node {
 		}
 	}
 
-	//fmt.Println()
-	//fmt.Printf("%+v\n", startNode)
-	//dumpTree(startNode, 0)
+	fmt.Println()
+	fmt.Printf("%+v\n", startNode)
+	dumpTree(startNode, 0)
+	return startNode
+
+}
+
+func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
+	for _, l := range lines {
+		currentNode := startNode
+		newNode := Node{l, []*Node{}}
+		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
+	}
+
+	fmt.Println()
+	fmt.Printf("%+v\n", startNode)
+	dumpTree(startNode, 0)
 	return startNode
 
 }
