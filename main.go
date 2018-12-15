@@ -34,6 +34,7 @@ import (
 )
 
 var demoText = "hi"
+var displaySplit string = "None"
 var result = ""
 var EditStr = `lalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalala`
 var EditBytes []byte
@@ -54,8 +55,10 @@ type Menu []string
 var menuData = `
 [
 "!arc list",
-"Option 2",
-"Option 3"
+"!git status",
+"git add",
+"!!git commit",
+"!ls -gGh"
 ]`
 
 var myMenu Menu
@@ -379,6 +382,8 @@ func main() {
 				continue
 			}
 			glfw.PollEvents()
+			winWidth, winHeight = win.GetSize()
+			//log.Printf("glfw: created window %dx%d", width, height)
 			gfxMain(win, ctx, state)
 		}
 	}
@@ -501,6 +506,11 @@ func ButtonBox(ctx *nk.Context) {
 					} else {
 
 						log.Println("Running command", name)
+						if strings.HasPrefix(name, "!!") {
+							args, _ := shellwords.Parse(name[2:])
+							fmt.Println("Running", args)
+							goof.QCI(args)
+						}
 						if strings.HasPrefix(name, "!") {
 
 							//It's a shell command
@@ -573,14 +583,61 @@ func ButtonBox(ctx *nk.Context) {
 		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
 		nk.NkLayoutRowDynamic(ctx, 10, 1)
 		{
-			results := strings.Split(result, "\n")
-			for _, v := range results {
-				//nk.NkLabel(ctx, v, nk.WindowBorder)
-				if nk.NkButtonLabel(ctx, v) > 0 {
-					n := &Node{v, []*Node{}}
-					currentThing = append(currentThing, n)
+			//Control the display
+			nk.NkLayoutRowDynamic(ctx, 20, 3)
+			{
 
+				if 0 < nk.NkButtonLabel(ctx, "None") {
+					displaySplit = "None"
 				}
+
+				if 0 < nk.NkButtonLabel(ctx, "Spaces") {
+					displaySplit = "Spaces"
+				}
+
+				if 0 < nk.NkButtonLabel(ctx, "Tabs") {
+					displaySplit = "Tabs"
+				}
+
+				if displaySplit == "None" {
+					nk.NkLayoutRowDynamic(ctx, 10, 1)
+					{
+						results := strings.Split(result, "\n")
+						for _, v := range results {
+							//nk.NkLabel(ctx, v, nk.WindowBorder)
+							if nk.NkButtonLabel(ctx, v) > 0 {
+								n := &Node{v, []*Node{}}
+								currentThing = append(currentThing, n)
+
+							}
+						}
+					}
+				}
+
+				if displaySplit == "Spaces" {
+					nk.NkLayoutRowDynamic(ctx, 10, 5)
+					{
+						results := strings.Split(result, "\n")
+						for _, line := range results {
+							bits := strings.Split(line, " ")
+							for i := 0; i < 5; i++ {
+								label := ""
+								if i < len(bits) {
+									label = bits[i]
+								} else {
+									label = ""
+								}
+								//nk.NkLabel(ctx, v, nk.WindowBorder)
+								if nk.NkButtonLabel(ctx, label) > 0 {
+									n := &Node{label, []*Node{}}
+									currentThing = append(currentThing, n)
+
+								}
+							}
+						}
+					}
+				}
+
 			}
 
 		}
