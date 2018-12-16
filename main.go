@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"runtime"
 	"strings"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/golang-ui/nuklear/nk"
 	"github.com/xlab/closer"
 
-	"github.com/gdamore/tcell"
 	"github.com/mattn/go-shellwords"
 
 	//"text/scanner"
@@ -26,7 +24,6 @@ import (
 	"fmt"
 
 	"log"
-	"os"
 
 	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
@@ -52,6 +49,16 @@ var currentThing []*Node
 
 type Menu []string
 
+type Node struct {
+	Name     string
+	SubNodes []*Node
+	Command  string
+}
+
+func makeNodeShort(name string, subNodes []*Node) *Node {
+	return &Node{name, subNodes, name}
+}
+
 var menuData = `
 [
 "!arc list",
@@ -72,158 +79,23 @@ func NodesToStringArray(ns []*Node) []string {
 	return out
 
 }
-func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThing []*Node, result string) {
-	currentNode = cN
-	currentThing = cT
 
-	//box := tview.NewBox().SetBorder(true).SetTitle("Hello, world!")
-	app = tview.NewApplication()
-
-	textView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetRegions(true).
-		SetWordWrap(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	textView.SetText(extraText)
-
-	footer := tview.NewTextView().
-		SetDynamicColors(true).
-		SetRegions(true).
-		SetWordWrap(true).
-		SetChangedFunc(func() {
-			app.Draw()
-		})
-	footer.SetText("lalalala")
-
-	newPrimitive := func(text string) *tview.TextView {
-		p := tview.NewTextView()
-		p.SetTextAlign(tview.AlignCenter).
-			SetText(text)
-		p.SetChangedFunc(func() {
-			app.Draw()
-		})
-		return p
+func Apps() [][]string {
+	lines := strings.Split(goof.QC([]string{"ls", "/Applications"}), "\n")
+	out := [][]string{}
+	for _, v := range lines {
+		name := strings.TrimSuffix(v, ".app")
+		command := fmt.Sprintf("!open \"/Applications/%v\"", v)
+		out = append(out, []string{name, command})
 	}
-	header := newPrimitive("")
-	header.SetText(strings.Join(NodesToStringArray(currentThing), " "))
-	header.SetTextColor(tcell.ColorRed)
-
-	list := tview.NewList()
-	populateList := func(list *tview.List) { os.Exit(0) }
-	extendList := func(list *tview.List) {
-		list.AddItem("Run", "Run your text", 'R', func() {
-			//app.Stop()
-			//app.Suspend(func() {
-			result = goof.Command("/bin/sh", []string{"-c", strings.Join(NodesToStringArray(currentThing[1:]), " ")})
-			//})
-			textView.SetText(result)
-			//app.Run()
-			//app.Draw()
-		})
-		list.AddItem("Run Interactive", "Run your text", 'R', func() {
-			//app.Stop()
-			app.Suspend(func() {
-				//result = doQC(NodesToStringArray(currentThing[1:]))
-				goof.QCI(NodesToStringArray(currentThing[1:]))
-			})
-			textView.SetText(result)
-			//app.Run()
-		})
-		list.AddItem("Back", "Go back", 'B', func() {
-			//app.Stop()
-			if len(currentThing) > 1 {
-				currentNode = currentThing[len(currentThing)-2]
-				currentThing = currentThing[:len(currentThing)-1]
-				header.SetText(strings.Join(NodesToStringArray(currentThing), " "))
-				list.Clear()
-				populateList(list)
-			}
-		})
-
-		list.AddItem("Quit", "exit", 'Q', func() {
-			fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
-			app.Stop()
-			os.Exit(0)
-		})
-		app.Draw()
-	}
-
-	populateList = func(list *tview.List) {
-		list.Clear()
-		result = ""
-		if strings.HasPrefix(currentNode.Name, "!") {
-
-			//It's a shell command
-
-			cmd := currentNode.Name[1:]
-			result = goof.Command("/bin/sh", []string{"-c", cmd})
-		}
-
-		if strings.HasPrefix(currentNode.Name, "&") {
-
-			//It's an internal command
-
-			cmd := currentNode.Name[1:]
-			if cmd == "lslR" {
-				result = strings.Join(goof.LslR("."), "\n")
-			}
-			if cmd == "ls" {
-				result = strings.Join(goof.Ls("."), "\n")
-			}
-		}
-
-		if result != "" {
-			execNode := Node{"Exec", []*Node{}}
-			addTextNodesFromString(&execNode, result)
-			currentNode = &execNode
-		}
-		for i, vv := range currentNode.SubNodes {
-			//node := vv.SubNodes[i]
-			name := vv.Name
-			v := vv
-			list.AddItem(name, name, goof.ToChar(i), func() {
-				if !strings.HasPrefix(name, "!") && !strings.HasPrefix(name, "&") {
-					currentThing = append(currentThing, v)
-				}
-				currentNode = v
-
-				header.SetText("\n" + strings.Join(NodesToStringArray(currentThing[1:]), " "))
-				list.Clear()
-				populateList(list)
-				//app.Stop()
-			})
-		}
-		extendList(list)
-	}
-
-	populateList(list)
-
-	//menu := newPrimitive("Menu")
-	//sideBar := newPrimitive("Side Bar")
-
-	grid := tview.NewGrid().
-		SetRows(3, 0, 2).
-		SetColumns(30, 0).
-		SetBorders(true).
-		AddItem(header, 0, 0, 1, 2, 0, 0, false).
-		AddItem(footer, 2, 0, 1, 2, 0, 0, false)
-
-	/*
-		        grid.AddItem(menu, 0, 0, 1, 3, 0, 0, false).
-		        AddItem(list, 1, 0, 1, 3, 0, 0, true).
-				AddItem(sideBar, 0, 0, 1, 3, 0, 0, false)
-	*/
-
-	grid.AddItem(list, 1, 0, 1, 1, 0, 40, true).
-		AddItem(textView, 1, 1, 1, 1, 0, 40, false)
-
-	if err := app.SetRoot(grid, true).Run(); err != nil {
-		panic(err)
-	}
-	return currentNode, currentThing, result
+	return out
 }
+
+/*
+func AddAppNodes(n *Node) *Node {
+
+}
+*/
 
 func git() string {
 	return `\&ls
@@ -273,7 +145,7 @@ imapcli read 5
 var header string
 
 func makeStartNode() *Node {
-	n := &Node{"Command:", []*Node{}}
+	n := makeNodeShort("Command:", []*Node{})
 
 	return n
 }
@@ -306,10 +178,14 @@ func main() {
 	if jsonerr != nil {
 		fmt.Println(jsonerr)
 	}
-	fmt.Println("Menu: ", myMenu)
+
+	//myMenu = Apps()
+	//fmt.Println("Menu: ", myMenu)
 
 	currentNode = makeStartNode()
-	currentNode = addTextNodesFromCommands(currentNode, myMenu)
+	//currentNode = addTextNodesFromCommands(currentNode, myMenu)
+
+	currentNode = addTextNodesFromStrStr(currentNode, Apps())
 
 	//addTextNodesFromString(n, git())
 	//    currentNode = addHistoryNodes()
@@ -409,284 +285,6 @@ func fflag(v bool) int32 {
 	return 0
 }
 
-func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
-
-	maxVertexBuffer := 512 * 1024
-	maxElementBuffer := 128 * 1024
-
-	nk.NkPlatformNewFrame()
-
-	// Layout
-	bounds := nk.NkRect(50, 50, 230, 250)
-	update := nk.NkBegin(ctx, "Menu", bounds,
-		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
-	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
-	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
-
-	if update > 0 {
-		nk.NkLayoutRowDynamic(ctx, 20, 3)
-		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
-			if 0 < nk.NkButtonLabel(ctx, "Undo") {
-				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
-					currentThing = currentThing[:len(currentThing)-1]
-				}
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Go Back") {
-				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
-				}
-			}
-		}
-		//QuickFileEditor(ctx)
-		ButtonBox(ctx)
-		nk.NkLayoutRowDynamic(ctx, 20, 3)
-		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
-			if 0 < nk.NkButtonLabel(ctx, "Run") {
-				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
-				result = goof.Command("cmd", []string{"/c", cmd})
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Run interactive") {
-				goof.QCI(NodesToStringArray(currentThing[1:]))
-
-			}
-		}
-		nk.NkLayoutRowDynamic(ctx, 25, 1)
-		{
-
-			//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
-
-			size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
-			if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
-				nk.NkLayoutRowDynamic(ctx, 120, 1)
-				state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
-				nk.NkLayoutRowDynamic(ctx, 25, 1)
-				r, g, b, a := state.bgColor.RGBAi()
-				r = nk.NkPropertyi(ctx, "#R:", 0, r, 255, 1, 1)
-				g = nk.NkPropertyi(ctx, "#G:", 0, g, 255, 1, 1)
-				b = nk.NkPropertyi(ctx, "#B:", 0, b, 255, 1, 1)
-				a = nk.NkPropertyi(ctx, "#A:", 0, a, 255, 1, 1)
-				state.bgColor.SetRGBAi(r, g, b, a)
-				nk.NkComboEnd(ctx)
-			}
-		}
-
-	}
-	nk.NkEnd(ctx)
-
-	// Render
-	bg := make([]float32, 4)
-	nk.NkColorFv(bg, state.bgColor)
-	width, height := win.GetSize()
-	gl.Viewport(0, 0, int32(width), int32(height))
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.ClearColor(bg[0], bg[1], bg[2], bg[3])
-	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
-	win.SwapBuffers()
-}
-
-func ButtonBox(ctx *nk.Context) {
-	nk.NkLayoutRowDynamic(ctx, 400, 2)
-	{
-		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
-		nk.NkLayoutRowDynamic(ctx, 20, 1)
-		{
-			for _, vv := range currentNode.SubNodes {
-				//node := vv.SubNodes[i]
-				name := vv.Name
-				v := vv
-				if nk.NkButtonLabel(ctx, name) > 0 {
-					if !strings.HasPrefix(name, "!") && !strings.HasPrefix(name, "&") {
-						currentThing = append(currentThing, v)
-						currentNode = v
-					} else {
-
-						log.Println("Running command", name)
-						if strings.HasPrefix(name, "!!") {
-							args, _ := shellwords.Parse(name[2:])
-							fmt.Println("Running", args)
-							goof.QCI(args)
-						}
-						if strings.HasPrefix(name, "!") {
-
-							//It's a shell command
-
-							cmd := name[1:]
-							result = goof.Command("/bin/sh", []string{"-c", cmd})
-							result = result + goof.Command("cmd", []string{"/c", cmd})
-						}
-
-						if strings.HasPrefix(name, "&") {
-
-							//It's an internal command
-
-							cmd := name[1:]
-							if cmd == "lslR" {
-								result = strings.Join(goof.LslR("."), "\n")
-							}
-							if cmd == "ls" {
-								result = strings.Join(goof.Ls("."), "\n")
-							}
-						}
-
-						if result != "" {
-							log.Println("Ran command, got result", result)
-							execNode := Node{"Exec", []*Node{}}
-							addTextNodesFromString(&execNode, result)
-							currentNode = &execNode
-						}
-
-					}
-
-					//list.Clear()
-					//populateList(list)
-					//app.Stop()
-				}
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Run command") {
-				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
-				result = goof.Command("cmd", []string{"/c", cmd})
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
-				goof.QCI(NodesToStringArray(currentThing[1:]))
-
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Change directory") {
-				path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
-				os.Chdir(path)
-				currentNode = makeStartNode()
-				currentThing = []*Node{currentNode}
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Go back") {
-				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
-					currentThing = currentThing[:len(currentThing)-1]
-				}
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Exit") {
-
-				fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
-				app.Stop()
-				os.Exit(0)
-			}
-		}
-		nk.NkGroupEnd(ctx)
-
-		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
-		nk.NkLayoutRowDynamic(ctx, 10, 1)
-		{
-			//Control the display
-			nk.NkLayoutRowDynamic(ctx, 20, 3)
-			{
-
-				if 0 < nk.NkButtonLabel(ctx, "None") {
-					displaySplit = "None"
-				}
-
-				if 0 < nk.NkButtonLabel(ctx, "Spaces") {
-					displaySplit = "Spaces"
-				}
-
-				if 0 < nk.NkButtonLabel(ctx, "Tabs") {
-					displaySplit = "Tabs"
-				}
-
-				if displaySplit == "None" {
-					nk.NkLayoutRowDynamic(ctx, 10, 1)
-					{
-						results := strings.Split(result, "\n")
-						for _, v := range results {
-							//nk.NkLabel(ctx, v, nk.WindowBorder)
-							if nk.NkButtonLabel(ctx, v) > 0 {
-								n := &Node{v, []*Node{}}
-								currentThing = append(currentThing, n)
-
-							}
-						}
-					}
-				}
-
-				if displaySplit == "Spaces" {
-					nk.NkLayoutRowDynamic(ctx, 10, 5)
-					{
-						results := strings.Split(result, "\n")
-						for _, line := range results {
-							bits := strings.Split(line, " ")
-							for i := 0; i < 5; i++ {
-								label := ""
-								if i < len(bits) {
-									label = bits[i]
-								} else {
-									label = ""
-								}
-								//nk.NkLabel(ctx, v, nk.WindowBorder)
-								if nk.NkButtonLabel(ctx, label) > 0 {
-									n := &Node{label, []*Node{}}
-									currentThing = append(currentThing, n)
-
-								}
-							}
-						}
-					}
-				}
-
-			}
-
-		}
-		nk.NkGroupEnd(ctx)
-	}
-
-}
-
-func QuickFileEditor(ctx *nk.Context) {
-
-	nk.NkLayoutRowDynamic(ctx, float32(winHeight), 2)
-	{
-		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
-		nk.NkLayoutRowDynamic(ctx, 20, 1)
-		{
-
-			files := goof.Ls(".")
-			for _, vv := range files {
-				if nk.NkButtonLabel(ctx, vv) > 0 {
-					var err error
-					EditBytes, err = ioutil.ReadFile(vv)
-					log.Println(err)
-				}
-
-			}
-		}
-		nk.NkGroupEnd(ctx)
-
-		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
-
-		//nk.NkLayoutRowStatic(ctx, 100, 100, 3)
-		nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
-		{
-			if EditBytes != nil {
-				//var lenStr = int32(len(EditBytes))
-				//nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii) FIXME
-				nk.NkLabelWrap(ctx, string(EditBytes))
-			}
-		}
-		nk.NkGroupEnd(ctx)
-	}
-
-}
-
-type Node struct {
-	Name     string
-	SubNodes []*Node
-}
-
 func (n *Node) String() string {
 	return n.Name
 }
@@ -711,9 +309,9 @@ func findNode(n *Node, name string) *Node {
 func addHistoryNodes() *Node {
 	src := goof.Command("fish", []string{"-c", "history"})
 	lines := strings.Split(src, "\n")
-	startNode := Node{"Command:", []*Node{}}
+	startNode := makeStartNode()
 	for _, l := range lines {
-		currentNode := &startNode
+		currentNode := startNode
 		/*
 				var s scanner.Scanner
 				s.Init(strings.NewReader(l))
@@ -732,21 +330,27 @@ func addHistoryNodes() *Node {
 		args, _ := shellwords.Parse(l)
 		for _, text := range args {
 			if findNode(currentNode, text) == nil {
-				newNode := Node{text, []*Node{}}
-				currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
-				currentNode = &newNode
+				newNode := makeNodeShort(text, []*Node{})
+				currentNode.SubNodes = append(currentNode.SubNodes, newNode)
+				currentNode = newNode
 			} else {
 				currentNode = findNode(currentNode, text)
 			}
 
 		}
 	}
-	return &startNode
+	return startNode
 }
 
 func addTextNodesFromString(startNode *Node, src string) *Node {
 	lines := strings.Split(src, "\n")
 	return addTextNodesFromStringList(startNode, lines)
+}
+
+func appendNewNodeShort(text string, aNode *Node) *Node {
+	newNode := makeNodeShort(text, []*Node{})
+	aNode.SubNodes = append(aNode.SubNodes, newNode)
+	return aNode
 }
 
 func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
@@ -755,9 +359,9 @@ func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
 		args, _ := shellwords.Parse(l)
 		for _, text := range args {
 			if findNode(currentNode, text) == nil {
-				newNode := Node{text, []*Node{}}
-				currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
-				currentNode = &newNode
+				newNode := makeNodeShort(text, []*Node{})
+				currentNode.SubNodes = append(currentNode.SubNodes, newNode)
+				currentNode = newNode
 			} else {
 				currentNode = findNode(currentNode, text)
 			}
@@ -773,8 +377,20 @@ func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
 
 func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
 	for _, l := range lines {
+		appendNewNodeShort(l, startNode)
+	}
+
+	fmt.Println()
+	fmt.Printf("%+v\n", startNode)
+	dumpTree(startNode, 0)
+	return startNode
+
+}
+
+func addTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
+	for _, l := range lines {
 		currentNode := startNode
-		newNode := Node{l, []*Node{}}
+		newNode := Node{l[0], []*Node{}, l[1]}
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 
