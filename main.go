@@ -53,10 +53,15 @@ type Node struct {
 	Name     string
 	SubNodes []*Node
 	Command  string
+	Data     string
 }
 
 func makeNodeShort(name string, subNodes []*Node) *Node {
-	return &Node{name, subNodes, name}
+	return &Node{name, subNodes, name, ""}
+}
+
+func makeNodeLong(name string, subNodes []*Node, command, data string) *Node {
+	return &Node{name, subNodes, name, data}
 }
 
 var menuData = `
@@ -87,6 +92,18 @@ func Apps() [][]string {
 		name := strings.TrimSuffix(v, ".app")
 		command := fmt.Sprintf("!open \"/Applications/%v\"", v)
 		out = append(out, []string{name, command})
+	}
+	return out
+}
+
+func MailSummaries() [][]string {
+	lines := getSummaries(50)
+	out := [][]string{}
+	for _, v := range lines {
+		command := ""
+		name := v[0]
+		data := v[1]
+		out = append(out, []string{name, command, data})
 	}
 	return out
 }
@@ -185,7 +202,7 @@ func main() {
 	currentNode = makeStartNode()
 	//currentNode = addTextNodesFromCommands(currentNode, myMenu)
 
-	currentNode = addTextNodesFromStrStr(currentNode, Apps())
+	currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
 
 	//addTextNodesFromString(n, git())
 	//    currentNode = addHistoryNodes()
@@ -390,7 +407,21 @@ func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
 func addTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
-		newNode := Node{l[0], []*Node{}, l[1]}
+		newNode := Node{l[0], []*Node{}, l[1], ""}
+		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
+	}
+
+	fmt.Println()
+	fmt.Printf("%+v\n", startNode)
+	dumpTree(startNode, 0)
+	return startNode
+
+}
+
+func addTextNodesFromStrStrStr(startNode *Node, lines [][]string) *Node {
+	for _, l := range lines {
+		currentNode := startNode
+		newNode := Node{l[0], []*Node{}, l[1], l[2]}
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 

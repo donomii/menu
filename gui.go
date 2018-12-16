@@ -117,6 +117,8 @@ func ButtonBox(ctx *nk.Context) {
 				command := vv.Command
 				v := vv
 				if nk.NkButtonLabel(ctx, name) > 0 {
+					fmt.Println("Data:", vv.Data)
+					result = vv.Data
 					if !strings.HasPrefix(command, "!") && !strings.HasPrefix(command, "&") {
 						currentThing = append(currentThing, v)
 						currentNode = v
