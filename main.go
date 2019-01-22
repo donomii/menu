@@ -25,7 +25,6 @@ import (
 
 	"log"
 
-	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
 	"github.com/rivo/tview"
 )
@@ -96,6 +95,7 @@ func Apps() [][]string {
 	return out
 }
 
+/*
 func MailSummaries() [][]string {
 	lines := getSummaries(50)
 	out := [][]string{}
@@ -107,6 +107,7 @@ func MailSummaries() [][]string {
 	}
 	return out
 }
+*/
 
 /*
 func AddAppNodes(n *Node) *Node {
@@ -202,9 +203,9 @@ func main() {
 	currentNode = makeStartNode()
 	//currentNode = addTextNodesFromCommands(currentNode, myMenu)
 
-	currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
+	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
 
-	//addTextNodesFromString(n, git())
+	addTextNodesFromString(currentNode, git())
 	//    currentNode = addHistoryNodes()
 
 	//currentNode = addTextNodes(currentNode,grep("git", doCommand("fish", []string{"-c", "history"})))
@@ -320,6 +321,10 @@ func findNode(n *Node, name string) *Node {
 		}
 	}
 	return nil
+
+}
+
+func addFileNodes() {
 
 }
 

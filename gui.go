@@ -8,6 +8,9 @@ import (
 
 	"io/ioutil"
 
+	"github.com/donomii/glim"
+	"github.com/donomii/nuklear-templates"
+
 	"github.com/go-gl/gl/v3.2-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/golang-ui/nuklear/nk"
@@ -24,6 +27,8 @@ import (
 	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
 )
+
+var mapTex *nktemplates.Texture
 
 func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
@@ -55,8 +60,8 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		//QuickFileEditor(ctx)
-		ButtonBox(ctx)
+		QuickFileEditor(ctx)
+		//ButtonBox(ctx)
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -288,12 +293,39 @@ func QuickFileEditor(ctx *nk.Context) {
 		nk.NkGroupBegin(ctx, "Group 2", nk.WindowBorder)
 
 		//nk.NkLayoutRowStatic(ctx, 100, 100, 3)
-		nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
+		//nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
+		height := 1000
+		nk.NkLayoutRowDynamic(ctx, 1000, 1)
 		{
 			if EditBytes != nil {
+				nkwidth := nk.NkWidgetWidth(ctx)
+				width := int(nkwidth)
+
+				//fmt.Println("Width:", width)
 				//var lenStr = int32(len(EditBytes))
 				//nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii) FIXME
-				nk.NkLabelWrap(ctx, string(EditBytes))
+				//nk.NkLabelWrap(ctx, string(EditBytes))
+				pic := make([]uint8, width*height*4)
+				f := glim.NewFormatter()
+				f.Colour = &glim.RGBA{255, 255, 255, 255}
+				f.FontSize = 12
+				glim.RenderPara(f, 0, 0, 0, 0, width, height, width, height, 0, 0, pic, string(EditBytes), true, true, true)
+				//pic, width, height := glim.GFormatToImage(im, nil, width, height)
+				//gl.DeleteTextures(testim)
+				//t, err := nktemplates.LoadImageFile(fmt.Sprintf("%v/progress%05v.png", output, fnum), width, height)
+				//t := nktemplates.LoadImageData(globalPic, width, height)
+				mapTex, _ = nktemplates.RawTexture(glim.Uint8ToBytes(pic), int32(width), int32(height), mapTex)
+				var err error = nil
+				if err == nil {
+					testim := nk.NkImageId(int32(mapTex.Handle))
+					//nk.NkLayoutRowStatic(ctx, 400, 400, 1)
+					//{
+					//log.Println("Drawing image")
+					nk.NkButtonImage(ctx, testim)
+					//}
+				} else {
+					log.Println(err)
+				}
 			}
 		}
 		nk.NkGroupEnd(ctx)
