@@ -25,10 +25,12 @@ import (
 
 	"log"
 
+	"github.com/donomii/glim"
 	"github.com/donomii/goof"
 	"github.com/rivo/tview"
 )
 
+var form *glim.FormatParams
 var demoText = "hi"
 var displaySplit string = "None"
 var result = ""
@@ -191,6 +193,9 @@ func main() {
 	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
+
+	//Create a text formatter
+	form = glim.NewFormatter()
 
 	jsonerr := json.Unmarshal([]byte(menuData), &myMenu)
 	if jsonerr != nil {

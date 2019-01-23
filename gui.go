@@ -295,6 +295,17 @@ func QuickFileEditor(ctx *nk.Context) {
 		//nk.NkLayoutRowStatic(ctx, 100, 100, 3)
 		//nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
 		height := 1000
+		butts := ctx.Input().Mouse().GetButtons()
+
+		mouseX, mouseY := int32(-1000), int32(-1000)
+
+		for _, v := range butts {
+			if *v.GetClicked() > 0 {
+				mouseX, mouseY = ctx.Input().Mouse().Pos()
+
+				log.Println("Click at ", mouseX, mouseY)
+			}
+		}
 		nk.NkLayoutRowDynamic(ctx, 1000, 1)
 		{
 			if EditBytes != nil {
@@ -306,10 +317,19 @@ func QuickFileEditor(ctx *nk.Context) {
 				//nk.NkEditString(ctx, nk.EditMultiline|nk.EditAlwaysInsertMode, EditBytes, &lenStr, 512, nk.NkFilterAscii) FIXME
 				//nk.NkLabelWrap(ctx, string(EditBytes))
 				pic := make([]uint8, width*height*4)
-				f := glim.NewFormatter()
-				f.Colour = &glim.RGBA{255, 255, 255, 255}
-				f.FontSize = 12
-				glim.RenderPara(f, 0, 0, 0, 0, width, height, width, height, 0, 0, pic, string(EditBytes), true, true, true)
+
+				form.Colour = &glim.RGBA{255, 255, 255, 255}
+				//form.Cursor = 20
+				form.FontSize = 12
+				bounds := nk.NkWidgetBounds(ctx)
+				left := int(*bounds.GetX())
+				top := int(*bounds.GetY())
+				newCursor, _, _ := glim.RenderPara(form, 0, 0, 0, 0, width, height, width, height, int(mouseX)-left, int(mouseY)-top, pic, string(EditBytes), true, true, true)
+				for _, v := range butts {
+					if *v.GetClicked() > 0 {
+						form.Cursor = newCursor
+					}
+				}
 				//pic, width, height := glim.GFormatToImage(im, nil, width, height)
 				//gl.DeleteTextures(testim)
 				//t, err := nktemplates.LoadImageFile(fmt.Sprintf("%v/progress%05v.png", output, fnum), width, height)
