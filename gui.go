@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	//"unsafe"
-
 	"io/ioutil"
+	"strconv"
 
 	"github.com/donomii/glim"
 	"github.com/donomii/nuklear-templates"
@@ -296,7 +296,20 @@ func QuickFileEditor(ctx *nk.Context) {
 		//nk.NkLayoutRowDynamic(ctx, float32(winHeight), 1)
 		height := 1000
 		butts := ctx.Input().Mouse().GetButtons()
-
+		keys := ctx.Input().Keyboard()
+		text := keys.GetText()
+		var l *int32
+		l = keys.GetTextLen()
+		ll := *l
+		if ll > 0 {
+			s := fmt.Sprintf("\"%vu%04x\"", `\`, int(text[0]))
+			s2, err := strconv.Unquote(s)
+			log.Println(err)
+			log.Printf("Text: %v, %v\n", s, s2)
+			newBytes := append(EditBytes[:form.Cursor], []byte(s2)...)
+			newBytes = append(newBytes, EditBytes[form.Cursor:]...)
+			form.Cursor++
+		}
 		mouseX, mouseY := int32(-1000), int32(-1000)
 
 		for _, v := range butts {
@@ -330,6 +343,7 @@ func QuickFileEditor(ctx *nk.Context) {
 						form.Cursor = newCursor
 					}
 				}
+
 				//pic, width, height := glim.GFormatToImage(im, nil, width, height)
 				//gl.DeleteTextures(testim)
 				//t, err := nktemplates.LoadImageFile(fmt.Sprintf("%v/progress%05v.png", output, fnum), width, height)
