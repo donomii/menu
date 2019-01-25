@@ -45,6 +45,28 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
 
 	if update > 0 {
+		nk.NkMenubarBegin(ctx)
+
+		/* menu #1 */
+		nk.NkLayoutRowBegin(ctx, nk.Static, 25, 5)
+		nk.NkLayoutRowPush(ctx, 45)
+		if nk.NkMenuBeginLabel(ctx, "MENU", nk.TextLeft, nk.NkVec2(120, 200)) > 0 {
+			//static size_t prog = 40;
+			//static int slider = 10;
+			check := int32(1)
+			nk.NkLayoutRowDynamic(ctx, 25, 1)
+			//if (nk.NkMenuItemLabel(ctx, "Hide", NK_TEXT_LEFT))
+			//    show_menu = nk_false;
+			//if (nk.NkMenuItemLabel(ctx, "About", NK_TEXT_LEFT))
+			//    show_app_about = nk_true;
+			//			nk.NkProgress(ctx, &prog, 100, nk.Modifiable)
+			//			nk.NkSliderInt(ctx, 0, &slider, 16, 1)
+			nk.NkCheckboxLabel(ctx, "check", &check)
+			nk.NkMenuEnd(ctx)
+		}
+
+		nk.NkMenubarEnd(ctx)
+
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -281,6 +303,7 @@ func QuickFileEditor(ctx *nk.Context) {
 			files := goof.Ls(".")
 			for _, vv := range files {
 				if nk.NkButtonLabel(ctx, vv) > 0 {
+					LoadFile(ed, vv)
 					var err error
 					EditBytes, err = ioutil.ReadFile(vv)
 					log.Println(err)
@@ -302,13 +325,22 @@ func QuickFileEditor(ctx *nk.Context) {
 		l = keys.GetTextLen()
 		ll := *l
 		if ll > 0 {
+
 			s := fmt.Sprintf("\"%vu%04x\"", `\`, int(text[0]))
-			s2, err := strconv.Unquote(s)
-			log.Println(err)
+			s2, _ := strconv.Unquote(s)
+			/*log.Println(err)
 			log.Printf("Text: %v, %v\n", s, s2)
 			newBytes := append(EditBytes[:form.Cursor], []byte(s2)...)
 			newBytes = append(newBytes, EditBytes[form.Cursor:]...)
 			form.Cursor++
+			*/
+			if ed.ActiveBuffer.Formatter.Cursor < 0 {
+				ed.ActiveBuffer.Formatter.Cursor = 0
+			}
+
+			fmt.Printf("Inserting at %v, length %v\n", ed.ActiveBuffer.Formatter.Cursor, len(ed.ActiveBuffer.Data.Text))
+			ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], fmt.Sprintf("%v", s2), ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
+			ed.ActiveBuffer.Formatter.Cursor++
 		}
 		mouseX, mouseY := int32(-1000), int32(-1000)
 
@@ -321,7 +353,8 @@ func QuickFileEditor(ctx *nk.Context) {
 		}
 		nk.NkLayoutRowDynamic(ctx, 1000, 1)
 		{
-			if EditBytes != nil {
+			//if EditBytes != nil {
+			if ed != nil {
 				nkwidth := nk.NkWidgetWidth(ctx)
 				width := int(nkwidth)
 
@@ -337,10 +370,11 @@ func QuickFileEditor(ctx *nk.Context) {
 				bounds := nk.NkWidgetBounds(ctx)
 				left := int(*bounds.GetX())
 				top := int(*bounds.GetY())
-				newCursor, _, _ := glim.RenderPara(form, 0, 0, 0, 0, width, height, width, height, int(mouseX)-left, int(mouseY)-top, pic, string(EditBytes), true, true, true)
+				newCursor, _, _ := glim.RenderPara(form, 0, 0, 0, 0, width, height, width, height, int(mouseX)-left, int(mouseY)-top, pic, ed.ActiveBuffer.Data.Text, true, true, true)
 				for _, v := range butts {
 					if *v.GetClicked() > 0 {
 						form.Cursor = newCursor
+						ed.ActiveBuffer.Formatter.Cursor = newCursor
 					}
 				}
 

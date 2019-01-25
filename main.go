@@ -185,6 +185,7 @@ type State struct {
 
 var winWidth = 900
 var winHeight = 900
+var ed *GlobalConfig
 
 func main() {
 
@@ -194,6 +195,7 @@ func main() {
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
 
+	ed = NewEditor()
 	//Create a text formatter
 	form = glim.NewFormatter()
 
