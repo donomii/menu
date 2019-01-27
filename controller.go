@@ -52,12 +52,41 @@ func NewBuffer() *Buffer {
 	return buf
 }
 
+//Create a new buffer, make it active and set its contents.  file name is required for a unique key to index it
+//If a buffer called fileName already exists, its data will be replaced with the new data
+func AddActiveBuffer(gc *GlobalConfig, text string, fileName string) {
+	buff := NewBuffer()
+	_, fbuff := FindByFileName(gc, fileName)
+	if fbuff == nil {
+		gc.BufferList = append(gc.BufferList, buff)
+	} else {
+		buff = fbuff
+	}
+	buff.Data.Text = text
+	gc.ActiveBuffer = buff
+}
+
+func FindByFileName(gc *GlobalConfig, fileName string) (int, *Buffer) {
+	for i, v := range gc.BufferList {
+		fmt.Println("Comparing ", fileName, v.Data.FileName)
+		if v.Data.FileName == fileName {
+			return i, v
+		}
+	}
+	return -1, nil
+}
+
 func NewEditor() *GlobalConfig {
 	var gc GlobalConfig
 	gc.ActiveBuffer = NewBuffer()
 	gc.ActiveBuffer.Formatter = glim.NewFormatter()
-	gc.ActiveBuffer.Data.Text = `
- Welcome to the shonky editor`
+	gc.ActiveBuffer.Data.Text = `Welcome to the shonky editor`
+	gc.ActiveBuffer.Data.FileName = "Welcome"
+	gc.StatusBuffer = NewBuffer()
+	gc.StatusBuffer.Formatter = glim.NewFormatter()
+	gc.StatusBuffer.Data.Text = `Status window`
+	gc.StatusBuffer.Data.FileName = "Status"
+	gc.BufferList = []*Buffer{gc.ActiveBuffer, gc.StatusBuffer}
 	return &gc
 
 }
@@ -65,6 +94,8 @@ func NewEditor() *GlobalConfig {
 func Log2Buff(gc *GlobalConfig, s string) {
 	gc.StatusBuffer.Data.Text = s
 }
+
+//Does a page up, by searching backwards util the old top line is off the bottom of the screen
 func SearchBackPage(txtBuf string, orig_f *glim.FormatParams, screenWidth, screenHeight int) int {
 	input := *orig_f
 	x := input.StartLinePos
@@ -199,16 +230,28 @@ func ProcessPort(gc *GlobalConfig, r io.Reader) {
 	}
 }
 
-func LoadFile(gc *GlobalConfig, fileName string) {
+func LoadFileIfNotLoaded(gc *GlobalConfig, fileName string) {
 	data, _ := ioutil.ReadFile(fileName)
-	gc.ActiveBuffer.Data.Text = ""
-	ActiveBufferAppend(gc, string(data))
-	gc.ActiveBuffer.Formatter.Cursor = len(gc.ActiveBuffer.Data.Text)
+
+	buff := NewBuffer()
+	_, fbuff := FindByFileName(gc, fileName)
+	if fbuff == nil {
+		fmt.Printf("Loading file from disk: %v\n", fileName)
+		gc.ActiveBuffer = buff
+		gc.BufferList = append(gc.BufferList, buff)
+		gc.ActiveBuffer.Data.Text = string(data)
+		gc.ActiveBuffer.Data.FileName = fileName
+		gc.ActiveBuffer.Formatter.Cursor = len(gc.ActiveBuffer.Data.Text)
+	} else {
+		fmt.Printf("Reusing buffer for %v\n", fileName)
+		buff = fbuff
+		gc.ActiveBuffer = buff
+	}
 
 }
 
 func BuffAppend(gc *GlobalConfig, buffId int, txt string) {
-	gc.BufferList[1].Data.Text = strings.Join([]string{gc.BufferList[1].Data.Text, txt}, "")
+	gc.BufferList[buffId].Data.Text = strings.Join([]string{gc.BufferList[buffId].Data.Text, txt}, "")
 }
 
 func ActiveBufferAppend(gc *GlobalConfig, txt string) {
@@ -300,8 +343,15 @@ func ReduceFont(buf *Buffer) {
 
 }
 
+func SetFont(buf *Buffer, size float64) {
+	buf.Formatter.FontSize = size
+	fmt.Println("Font size", buf.Formatter.FontSize)
+	glim.ClearAllCaches()
+}
+
 func IncreaseFont(buf *Buffer) {
 	buf.Formatter.FontSize += 1
+	fmt.Println("Font size", buf.Formatter.FontSize)
 	glim.ClearAllCaches()
 }
 
@@ -319,7 +369,16 @@ func NextBuffer(gc *GlobalConfig) {
 		gc.ActiveBufferId = 0
 	}
 	gc.ActiveBuffer = gc.BufferList[gc.ActiveBufferId]
-	log.Printf("Next buffer: %v", gc.ActiveBufferId)
+	log.Printf("Next buffer: %v, %v", gc.ActiveBufferId, gc.ActiveBuffer.Data.FileName)
+}
+
+func PreviousBuffer(gc *GlobalConfig) {
+	gc.ActiveBufferId--
+	if gc.ActiveBufferId < 0 {
+		gc.ActiveBufferId = len(gc.BufferList) - 1
+	}
+	gc.ActiveBuffer = gc.BufferList[gc.ActiveBufferId]
+	Log2Buff(gc, fmt.Sprintf("Previous buffer: %v, %v", gc.ActiveBufferId, gc.ActiveBuffer.Data.FileName))
 }
 
 func ToggleVerticalMode(gc *GlobalConfig) {
@@ -344,6 +403,11 @@ func PasteFromClipBoard(gc *GlobalConfig, buf *Buffer) {
 //This function carries out commands.  It is the interface between your scripting, and the actual engine operation
 func dispatch(command string, gc *GlobalConfig) {
 	switch command {
+	case "DELETE-LEFT":
+		if gc.ActiveBuffer.Formatter.Cursor > 0 {
+			gc.ActiveBuffer.Data.Text = DeleteLeft(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
+			gc.ActiveBuffer.Formatter.Cursor--
+		}
 	case "WHEEL-UP":
 		gc.ActiveBuffer.Formatter.Cursor = ScanToPrevLine(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
 	case "WHEEL-DOWN":
@@ -368,6 +432,8 @@ func dispatch(command string, gc *GlobalConfig) {
 		gc.ActiveBuffer.Formatter.Cursor = ScanToNextLine(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
 	case "NEXT-BUFFER":
 		NextBuffer(gc)
+	case "PREVIOUS-BUFFER":
+		PreviousBuffer(gc)
 	case "INPUT-MODE":
 		gc.ActiveBuffer.InputMode = true
 	case "START-OF-LINE":
