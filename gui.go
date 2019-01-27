@@ -29,6 +29,91 @@ import (
 )
 
 var mapTex *nktemplates.Texture
+var lastEnterDown bool
+var lastBackspaceDown bool
+
+func drawmenu(ctx *nk.Context, state *State) {
+	nk.NkMenubarBegin(ctx)
+
+	/* menu #1 */
+	nk.NkLayoutRowBegin(ctx, nk.Static, 25, 5)
+	nk.NkLayoutRowPush(ctx, 45)
+
+	if nk.NkMenuBeginLabel(ctx, "File", nk.TextLeft, nk.NkVec2(120, 200)) > 0 {
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+		if nk.NkMenuItemLabel(ctx, "Save", nk.TextLeft) > 0 {
+			dispatch("SAVE-FILE", ed)
+		}
+		if nk.NkMenuItemLabel(ctx, "Exit", nk.TextLeft) > 0 {
+			os.Exit(0)
+		}
+		nk.NkMenuEnd(ctx)
+	}
+
+	if nk.NkMenuBeginLabel(ctx, "Fonts", nk.TextLeft, nk.NkVec2(120, 200)) > 0 {
+		//static size_t prog = 40;
+		//static int slider = 10;
+		check := int32(1)
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+		if nk.NkMenuItemLabel(ctx, "Text direction", nk.TextLeft) > 0 {
+			dispatch("TOGGLE-VERTICAL-MODE", ed)
+		}
+		if nk.NkMenuItemLabel(ctx, "Increase font", nk.TextLeft) > 0 {
+			dispatch("INCREASE-FONT", ed)
+		}
+		if nk.NkMenuItemLabel(ctx, "Decrease font", nk.TextLeft) > 0 {
+			dispatch("DECREASE-FONT", ed)
+		}
+		if nk.NkMenuItemLabel(ctx, "8 point", nk.TextLeft) > 0 {
+			SetFont(ed.ActiveBuffer, 8)
+		}
+		if nk.NkMenuItemLabel(ctx, "12 point", nk.TextLeft) > 0 {
+			SetFont(ed.ActiveBuffer, 12)
+		}
+		if nk.NkMenuItemLabel(ctx, "20 point", nk.TextLeft) > 0 {
+			SetFont(ed.ActiveBuffer, 20)
+		}
+		//if (nk.NkMenuItemLabel(ctx, "About", NK_TEXT_LEFT))
+		//    show_app_about = nk_true;
+		//			nk.NkProgress(ctx, &prog, 100, nk.Modifiable)
+		//			nk.NkSliderInt(ctx, 0, &slider, 16, 1)
+		nk.NkCheckboxLabel(ctx, "check", &check)
+		nk.NkMenuEnd(ctx)
+	}
+
+	if nk.NkMenuBeginLabel(ctx, "Buffers", nk.TextLeft, nk.NkVec2(120, 200)) > 0 {
+		//static size_t prog = 40;
+		//static int slider = 10;
+		check := int32(1)
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+
+		if nk.NkMenuItemLabel(ctx, "Next Buffer", nk.TextLeft) > 0 {
+			dispatch("NEXT-BUFFER", ed)
+			fmt.Println("NExt buffer")
+		}
+		if nk.NkMenuItemLabel(ctx, "Previous Buffer", nk.TextLeft) > 0 {
+			dispatch("PREVIOUS-BUFFER", ed)
+		}
+
+		if nk.NkMenuItemLabel(ctx, "---------------", nk.TextLeft) > 0 {
+		}
+
+		for i, v := range ed.BufferList {
+			if nk.NkMenuItemLabel(ctx, fmt.Sprintf("%v) %v", i, v.Data.FileName), nk.TextLeft) > 0 {
+				ed.ActiveBuffer = ed.BufferList[i]
+			}
+		}
+
+		//if (nk.NkMenuItemLabel(ctx, "About", NK_TEXT_LEFT))
+		//    show_app_about = nk_true;
+		//			nk.NkProgress(ctx, &prog, 100, nk.Modifiable)
+		//			nk.NkSliderInt(ctx, 0, &slider, 16, 1)
+		nk.NkCheckboxLabel(ctx, "check", &check)
+		nk.NkMenuEnd(ctx)
+	}
+
+	nk.NkMenubarEnd(ctx)
+}
 
 func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
@@ -43,29 +128,30 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
 	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
 	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
+	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyEnter) > 0 {
+		fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
+		if lastEnterDown == false {
+			ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
+			ed.ActiveBuffer.Formatter.Cursor++
+		}
+		lastEnterDown = true
+	} else {
+		lastEnterDown = false
+	}
+
+	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyBackspace) > 0 {
+		fmt.Printf("Back: %+v\n", ctx.Input().GetKeyboard())
+		if lastBackspaceDown == false {
+			dispatch("DELETE-LEFT", ed)
+		}
+		lastBackspaceDown = true
+	} else {
+		lastBackspaceDown = false
+	}
 
 	if update > 0 {
-		nk.NkMenubarBegin(ctx)
 
-		/* menu #1 */
-		nk.NkLayoutRowBegin(ctx, nk.Static, 25, 5)
-		nk.NkLayoutRowPush(ctx, 45)
-		if nk.NkMenuBeginLabel(ctx, "MENU", nk.TextLeft, nk.NkVec2(120, 200)) > 0 {
-			//static size_t prog = 40;
-			//static int slider = 10;
-			check := int32(1)
-			nk.NkLayoutRowDynamic(ctx, 25, 1)
-			//if (nk.NkMenuItemLabel(ctx, "Hide", NK_TEXT_LEFT))
-			//    show_menu = nk_false;
-			//if (nk.NkMenuItemLabel(ctx, "About", NK_TEXT_LEFT))
-			//    show_app_about = nk_true;
-			//			nk.NkProgress(ctx, &prog, 100, nk.Modifiable)
-			//			nk.NkSliderInt(ctx, 0, &slider, 16, 1)
-			nk.NkCheckboxLabel(ctx, "check", &check)
-			nk.NkMenuEnd(ctx)
-		}
-
-		nk.NkMenubarEnd(ctx)
+		drawmenu(ctx, state)
 
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
@@ -303,9 +389,10 @@ func QuickFileEditor(ctx *nk.Context) {
 			files := goof.Ls(".")
 			for _, vv := range files {
 				if nk.NkButtonLabel(ctx, vv) > 0 {
-					LoadFile(ed, vv)
+					LoadFileIfNotLoaded(ed, vv)
 					var err error
 					EditBytes, err = ioutil.ReadFile(vv)
+					//AddActiveBuffer(ed, string(EditBytes), vv)
 					log.Println(err)
 				}
 
@@ -320,12 +407,13 @@ func QuickFileEditor(ctx *nk.Context) {
 		height := 1000
 		butts := ctx.Input().Mouse().GetButtons()
 		keys := ctx.Input().Keyboard()
+
 		text := keys.GetText()
 		var l *int32
 		l = keys.GetTextLen()
 		ll := *l
 		if ll > 0 {
-
+			//fmt.Printf("%+v\n", ctx.Input())
 			s := fmt.Sprintf("\"%vu%04x\"", `\`, int(text[0]))
 			s2, _ := strconv.Unquote(s)
 			/*log.Println(err)
@@ -346,6 +434,7 @@ func QuickFileEditor(ctx *nk.Context) {
 
 		for _, v := range butts {
 			if *v.GetClicked() > 0 {
+				//fmt.Printf("%+v\n", ctx.Input())
 				mouseX, mouseY = ctx.Input().Mouse().Pos()
 
 				log.Println("Click at ", mouseX, mouseY)
@@ -370,7 +459,7 @@ func QuickFileEditor(ctx *nk.Context) {
 				bounds := nk.NkWidgetBounds(ctx)
 				left := int(*bounds.GetX())
 				top := int(*bounds.GetY())
-				newCursor, _, _ := glim.RenderPara(form, 0, 0, 0, 0, width, height, width, height, int(mouseX)-left, int(mouseY)-top, pic, ed.ActiveBuffer.Data.Text, true, true, true)
+				newCursor, _, _ := glim.RenderPara(ed.ActiveBuffer.Formatter, 0, 0, 0, 0, width, height, width, height, int(mouseX)-left, int(mouseY)-top, pic, ed.ActiveBuffer.Data.Text, true, true, true)
 				for _, v := range butts {
 					if *v.GetClicked() > 0 {
 						form.Cursor = newCursor
@@ -389,7 +478,14 @@ func QuickFileEditor(ctx *nk.Context) {
 					//nk.NkLayoutRowStatic(ctx, 400, 400, 1)
 					//{
 					//log.Println("Drawing image")
-					nk.NkButtonImage(ctx, testim)
+
+					/*
+						if nk.NkButtonImage(ctx, testim) > 0 {
+							ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
+							ed.ActiveBuffer.Formatter.Cursor++
+						}
+					*/
+					nk.NkImage(ctx, testim)
 					//}
 				} else {
 					log.Println(err)
