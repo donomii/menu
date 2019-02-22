@@ -65,6 +65,20 @@ func makeNodeLong(name string, subNodes []*Node, command, data string) *Node {
 	return &Node{name, subNodes, name, data}
 }
 
+func UberMenu() *Node {
+	node := makeNodeLong("Main menu",
+		[]*Node{
+			appsMenu(),
+			historyMenu(),
+			gitMenu(),
+			gitHistoryMenu(),
+			//controlMenu(),
+		},
+		"", "")
+	return node
+
+}
+
 var menuData = `
 [
 "!arc list",
@@ -84,6 +98,13 @@ func NodesToStringArray(ns []*Node) []string {
 	}
 	return out
 
+}
+
+func appsMenu() *Node {
+	node := makeNodeShort("Applications Menu",
+		[]*Node{})
+	addTextNodesFromStrStr(node, Apps())
+	return node
 }
 
 func Apps() [][]string {
@@ -117,6 +138,17 @@ func AddAppNodes(n *Node) *Node {
 }
 */
 
+func gitHistoryMenu() *Node {
+	node := makeNodeShort("previous git commands", []*Node{})
+	addTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
+	return node
+}
+
+func gitMenu() *Node {
+	node := makeNodeShort("git menu", []*Node{})
+	addTextNodesFromString(node, git())
+	return node
+}
 func git() string {
 	return `\&ls
 	\&lslR
@@ -204,18 +236,11 @@ func main() {
 		fmt.Println(jsonerr)
 	}
 
-	//myMenu = Apps()
-	//fmt.Println("Menu: ", myMenu)
-
-	currentNode = makeStartNode()
-	//currentNode = addTextNodesFromCommands(currentNode, myMenu)
+	currentNode = UberMenu()
 
 	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
 
-	addTextNodesFromString(currentNode, git())
-	//    currentNode = addHistoryNodes()
-
-	//currentNode = addTextNodes(currentNode,grep("git", doCommand("fish", []string{"-c", "history"})))
+	//currentNode =
 	currentThing = []*Node{currentNode}
 	//result := ""
 
@@ -331,14 +356,23 @@ func findNode(n *Node, name string) *Node {
 
 }
 
-func addFileNodes() {
+func controlMenu() *Node {
+	node := makeNodeShort("System controls", []*Node{})
+	addTextNodesFromStrStr(node,
+		[][]string{
+			[]string{"pmset sleepnow"},
+		})
+	return node
+}
 
+func historyMenu() *Node {
+	return addHistoryNodes()
 }
 
 func addHistoryNodes() *Node {
 	src := goof.Command("fish", []string{"-c", "history"})
 	lines := strings.Split(src, "\n")
-	startNode := makeStartNode()
+	startNode := makeNodeShort("Previous command lines", []*Node{})
 	for _, l := range lines {
 		currentNode := startNode
 		/*

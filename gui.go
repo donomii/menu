@@ -168,8 +168,8 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		QuickFileEditor(ctx)
-		//ButtonBox(ctx)
+		//QuickFileEditor(ctx)
+		ButtonBox(ctx)
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
