@@ -32,6 +32,46 @@ var mapTex *nktemplates.Texture
 var lastEnterDown bool
 var lastBackspaceDown bool
 
+func defaultMenu(ctx *nk.Context) {
+	if 0 < nk.NkButtonLabel(ctx, "---------") {
+	}
+
+	if 0 < nk.NkButtonLabel(ctx, "Run command") {
+		cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+		result = goof.Command("cmd", []string{"/c", cmd})
+		result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+	}
+
+	if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
+		goof.QCI(NodesToStringArray(currentThing[1:]))
+
+	}
+	if 0 < nk.NkButtonLabel(ctx, "Change directory") {
+		path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
+		os.Chdir(path)
+		currentNode = makeStartNode()
+		currentThing = []*Node{currentNode}
+	}
+
+	if len(currentThing) > 1 {
+
+		lastMenu := currentThing[len(currentThing)-2]
+
+		if 0 < nk.NkButtonLabel(ctx, "Go back to "+lastMenu.Name) {
+			if len(currentThing) > 1 {
+				currentNode = currentThing[len(currentThing)-2]
+				currentThing = currentThing[:len(currentThing)-1]
+			}
+		}
+	}
+	if 0 < nk.NkButtonLabel(ctx, "Exit") {
+
+		fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
+		app.Stop()
+		os.Exit(0)
+	}
+}
+
 func drawmenu(ctx *nk.Context, state *State) {
 	nk.NkMenubarBegin(ctx)
 
@@ -155,7 +195,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
+			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " > "), nk.TextLeft)
 			if 0 < nk.NkButtonLabel(ctx, "Undo") {
 				if len(currentThing) > 1 {
 					currentNode = currentThing[len(currentThing)-2]
@@ -168,8 +208,12 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		//QuickFileEditor(ctx)
-		ButtonBox(ctx)
+		if currentNode.Name == "File Manager" {
+			QuickFileEditor(ctx)
+		} else {
+			ButtonBox(ctx)
+		}
+
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
@@ -280,35 +324,7 @@ func ButtonBox(ctx *nk.Context) {
 				}
 			}
 
-			if 0 < nk.NkButtonLabel(ctx, "Run command") {
-				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
-				result = goof.Command("cmd", []string{"/c", cmd})
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
-				goof.QCI(NodesToStringArray(currentThing[1:]))
-
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Change directory") {
-				path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
-				os.Chdir(path)
-				currentNode = makeStartNode()
-				currentThing = []*Node{currentNode}
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Go back") {
-				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
-					currentThing = currentThing[:len(currentThing)-1]
-				}
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Exit") {
-
-				fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
-				app.Stop()
-				os.Exit(0)
-			}
+			defaultMenu(ctx)
 		}
 		nk.NkGroupEnd(ctx)
 

@@ -72,6 +72,7 @@ func UberMenu() *Node {
 			historyMenu(),
 			gitMenu(),
 			gitHistoryMenu(),
+			fileManagerMenu(),
 			//controlMenu(),
 		},
 		"", "")
@@ -100,6 +101,9 @@ func NodesToStringArray(ns []*Node) []string {
 
 }
 
+func fileManagerMenu() *Node {
+	return makeNodeShort("File Manager", []*Node{})
+}
 func appsMenu() *Node {
 	node := makeNodeShort("Applications Menu",
 		[]*Node{})
