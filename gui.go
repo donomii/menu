@@ -33,7 +33,15 @@ var lastEnterDown bool
 var lastBackspaceDown bool
 
 func defaultMenu(ctx *nk.Context) {
+	col := nk.NewColor()
+	col.SetRGBA(nk.Byte(255), nk.Byte(255), nk.Byte(255), nk.Byte(255))
+	nk.SetBackgroundColor(ctx, *col)
 	if 0 < nk.NkButtonLabel(ctx, "---------") {
+	}
+
+	if 0 < nk.NkButtonLabel(ctx, "Edit Config") {
+		LoadFileIfNotLoaded(ed, confFile)photos
+		currentNode.Name = "File Manager"
 	}
 
 	if 0 < nk.NkButtonLabel(ctx, "Run command") {
@@ -208,6 +216,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
+
 		if currentNode.Name == "File Manager" {
 			QuickFileEditor(ctx)
 		} else {

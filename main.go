@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"runtime"
 	"strings"
+
+	"github.com/BurntSushi/toml"
 
 	"golang.org/x/image/font/gofont/goregular"
 
@@ -122,6 +125,10 @@ func Apps() [][]string {
 	return out
 }
 
+func configFile() *Node {
+	return makeNodeShort("Edit Config", []*Node{})
+}
+
 /*
 func MailSummaries() [][]string {
 	lines := getSummaries(50)
@@ -219,12 +226,27 @@ type State struct {
 	opt     Option
 }
 
+type UserConfig struct {
+	Red, Green, Blue int
+}
+
 var winWidth = 900
 var winHeight = 900
 var ed *GlobalConfig
+var config UserConfig
+var confFile string
 
 func main() {
+	confFile = goof.ConfigFilePath(".menu.json")
+	log.Println("Loading config from:", confFile)
+	configBytes, conferr := ioutil.ReadFile(confFile)
+	if conferr != nil {
+		log.Println("Writing fresh config to:", confFile)
+		ioutil.WriteFile(confFile, []byte("test"), 0644)
+		configBytes, conferr = ioutil.ReadFile(confFile)
+	}
 
+	toml.Decode(string(configBytes), &config)
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
 	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
