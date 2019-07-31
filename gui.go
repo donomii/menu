@@ -40,7 +40,7 @@ func defaultMenu(ctx *nk.Context) {
 	}
 
 	if 0 < nk.NkButtonLabel(ctx, "Edit Config") {
-		LoadFileIfNotLoaded(ed, confFile)photos
+		LoadFileIfNotLoaded(ed, confFile)
 		currentNode.Name = "File Manager"
 	}
 
