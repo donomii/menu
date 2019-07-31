@@ -237,6 +237,8 @@ var config UserConfig
 var confFile string
 
 func main() {
+	runtime.GOMAXPROCS(4)
+	runtime.LockOSThread()
 	confFile = goof.ConfigFilePath(".menu.json")
 	log.Println("Loading config from:", confFile)
 	configBytes, conferr := ioutil.ReadFile(confFile)
@@ -247,12 +249,11 @@ func main() {
 	}
 
 	toml.Decode(string(configBytes), &config)
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
 	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
 
+	go func () {
 	ed = NewEditor()
 	//Create a text formatter
 	form = glim.NewFormatter()
@@ -261,8 +262,10 @@ func main() {
 	if jsonerr != nil {
 		fmt.Println(jsonerr)
 	}
+}()
 
-	currentNode = UberMenu()
+	currentNode = makeNodeShort("Loading", []*Node{})
+	go func() { currentNode = UberMenu() }()
 
 	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
 
