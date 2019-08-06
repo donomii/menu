@@ -28,17 +28,17 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
     printf("Key: %i\n", keycode);
     
     // Swap 'a' (keycode=0) and 'z' (keycode=6).
-    if (keycode == (CGKeyCode)0){
+    if (keycode == (CGKeyCode)111){
         if (menu_active==1) {
-            system("pkill -f menu &");
+            system("pkill -f universal_menu_main &");
             menu_active=0;
         } else {
-            system("menu &");
+            system("./universal_menu_main &");
             menu_active=1;
         }
-        keycode = (CGKeyCode)6;
-    } else if (keycode == (CGKeyCode)6) {
-        keycode = (CGKeyCode)0;
+        //keycode = (CGKeyCode)6;
+    //} else if (keycode == (CGKeyCode)6) {
+        //keycode = (CGKeyCode)0;
     }
     
     // Set the modified keycode field in the event.
