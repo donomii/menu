@@ -3,6 +3,7 @@ package main
 
 import (
 	"strings"
+	//"time"
 
 	//"unsafe"
 	"io/ioutil"
@@ -41,7 +42,7 @@ func defaultMenu(ctx *nk.Context) {
 
 	if 0 < nk.NkButtonLabel(ctx, "Edit Config") {
 		LoadFileIfNotLoaded(ed, confFile)
-		currentNode.Name = "File Manager"
+		getCurrentNode().Name = "File Manager"
 	}
 
 	if 0 < nk.NkButtonLabel(ctx, "Run command") {
@@ -57,8 +58,8 @@ func defaultMenu(ctx *nk.Context) {
 	if 0 < nk.NkButtonLabel(ctx, "Change directory") {
 		path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
 		os.Chdir(path)
-		currentNode = makeStartNode()
-		currentThing = []*Node{currentNode}
+		updateCurrentNode(makeStartNode())
+		currentThing = []*Node{getCurrentNode()}
 	}
 
 	if len(currentThing) > 1 {
@@ -67,7 +68,7 @@ func defaultMenu(ctx *nk.Context) {
 
 		if 0 < nk.NkButtonLabel(ctx, "Go back to "+lastMenu.Name) {
 			if len(currentThing) > 1 {
-				currentNode = currentThing[len(currentThing)-2]
+				updateCurrentNode(currentThing[len(currentThing)-2])
 				currentThing = currentThing[:len(currentThing)-1]
 			}
 		}
@@ -75,7 +76,9 @@ func defaultMenu(ctx *nk.Context) {
 	if 0 < nk.NkButtonLabel(ctx, "Exit") {
 
 		fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
-		app.Stop()
+		if ui {
+			app.Stop()
+		}
 		os.Exit(0)
 	}
 }
@@ -206,18 +209,18 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " > "), nk.TextLeft)
 			if 0 < nk.NkButtonLabel(ctx, "Undo") {
 				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
+					updateCurrentNode(currentThing[len(currentThing)-2])
 					currentThing = currentThing[:len(currentThing)-1]
 				}
 			}
 			if 0 < nk.NkButtonLabel(ctx, "Go Back") {
 				if len(currentThing) > 1 {
-					currentNode = currentThing[len(currentThing)-2]
+					updateCurrentNode(currentThing[len(currentThing)-2])
 				}
 			}
 		}
 
-		if currentNode.Name == "File Manager" {
+		if getCurrentNode().Name == "File Manager" {
 			QuickFileEditor(ctx)
 		} else {
 			ButtonBox(ctx)
@@ -277,7 +280,7 @@ func ButtonBox(ctx *nk.Context) {
 		nk.NkGroupBegin(ctx, "Group 1", nk.WindowBorder)
 		nk.NkLayoutRowDynamic(ctx, 20, 1)
 		{
-			for _, vv := range currentNode.SubNodes {
+			for _, vv := range getCurrentNode().SubNodes {
 				//node := vv.SubNodes[i]
 				name := vv.Name
 				command := vv.Command
@@ -287,7 +290,7 @@ func ButtonBox(ctx *nk.Context) {
 					result = vv.Data
 					if !strings.HasPrefix(command, "!") && !strings.HasPrefix(command, "&") {
 						currentThing = append(currentThing, v)
-						currentNode = v
+						updateCurrentNode(v)
 					} else {
 
 						log.Println("Running command", command)
@@ -322,7 +325,7 @@ func ButtonBox(ctx *nk.Context) {
 							log.Println("Ran command, got result", result)
 							execNode := makeNodeShort("Exec", []*Node{})
 							addTextNodesFromString(execNode, result)
-							currentNode = execNode
+							updateCurrentNode(execNode)
 						}
 
 					}
