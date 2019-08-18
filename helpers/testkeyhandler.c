@@ -33,7 +33,7 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
             system("pkill -f universal_menu_main &");
             menu_active=0;
         } else {
-            system("./universal_menu_main &");
+            system("./universal_menu_main.exe &");
             menu_active=1;
         }
         //keycode = (CGKeyCode)6;
