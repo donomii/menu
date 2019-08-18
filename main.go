@@ -243,6 +243,7 @@ func main() {
 	//	runtime.LockOSThread()
 	runtime.GOMAXPROCS(4)
 
+	togglePidFile()
 	confFile = goof.ConfigFilePath(".menu.json")
 	log.Println("Loading config from:", confFile)
 	configBytes, conferr := ioutil.ReadFile(confFile)
