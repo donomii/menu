@@ -2,7 +2,13 @@
 package main
 
 import (
+	"bytes"
 	"strings"
+
+	//	"time"
+
+	"github.com/schollz/closestmatch"
+
 	//"time"
 
 	//"unsafe"
@@ -24,6 +30,8 @@ import (
 
 	"log"
 	"os"
+
+	//"os/exec"
 
 	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
@@ -166,6 +174,41 @@ func drawmenu(ctx *nk.Context, state *State) {
 	nk.NkMenubarEnd(ctx)
 }
 
+func comboCallback(newString, oldString []byte) []string {
+	news := string(newString)
+	log.Println("Processing ", news)
+
+	var names []string
+	for _, details := range Apps() {
+		names = append(names, details[0])
+	}
+	wordsToTest := names
+
+	// Choose a set of bag sizes, more is more accurate but slower
+	bagSizes := []int{2}
+
+	// Create a closestmatch object
+	cm := closestmatch.New(wordsToTest, bagSizes)
+	return cm.ClosestN(news, 5)
+}
+
+func activate(index int, value string) bool {
+
+	log.Println("selected ", index, value, Apps()[index+1])
+	//apps := Apps()
+	for i, v := range Apps() {
+		cmp := strings.Compare(value, v[0])
+		if cmp == 0 {
+			cmd := Apps()[i][1][1:]
+			result = goof.Command("/bin/sh", []string{"-c", cmd})
+			result = result + goof.Command("cmd", []string{"/c", cmd})
+			return true
+		}
+	}
+	return false
+
+}
+
 func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
 	maxVertexBuffer := 512 * 1024
@@ -184,6 +227,8 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 		if lastEnterDown == false {
 			ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
 			ed.ActiveBuffer.Formatter.Cursor++
+
+			activate(-1, comboCallback(userbytes, lastUserbytes)[0])
 		}
 		lastEnterDown = true
 	} else {
@@ -260,7 +305,40 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 			}
 		}
 
+		nk.NkLayoutRowDynamic(ctx, 25, 1)
+		{
+			//fmt.Println("Width:", width)
+			lastUserbytes = bytes.Map(func(r rune) rune { return r }, userbytes)
+			var lenStr = int32(len(userbytes))
+			nk.NkEditFocus(ctx, nk.EditAlwaysInsertMode)
+			nk.NkEditString(ctx, nk.EditAlwaysInsertMode, userbytes, &lenStr, 512, nk.NkFilterAscii) //FIXME
+
+			nk.NkLabelWrap(ctx, string(userbytes))
+
+			ret := bytes.Compare(lastUserbytes, userbytes)
+
+			if ret != 0 {
+				//log.Println("Text string changed!", lastUserbytes, "|", userbytes)
+				//Handle the change
+				optionsList = comboCallback(userbytes, lastUserbytes)
+			}
+		}
+
+		//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
+
+		for _, v := range optionsList {
+			nk.NkLayoutRowDynamic(ctx, 25, 1)
+			clicked := nk.NkComboItemLabel(ctx, v, nk.TextLeft)
+			if clicked > 0 {
+				if activate(-1, v) {
+					os.Remove(pidPath())
+					os.Exit(0)
+				}
+			}
+		}
+
 	}
+
 	nk.NkEnd(ctx)
 
 	// Render

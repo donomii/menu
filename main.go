@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"os"
 	"runtime"
 
 	"github.com/BurntSushi/toml"
@@ -37,6 +38,9 @@ var displaySplit string = "None"
 var result = ""
 var EditStr = `lalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalala`
 var EditBytes []byte
+var userbytes []byte
+var lastUserbytes []byte
+var optionsList []string
 var tokens [][]string
 
 var autoSync bool
@@ -218,7 +222,24 @@ func init() {
 	log.Println("Locked to main thread")
 }
 
+func pidPath() string {
+	homeDir := goof.HomeDirectory()
+	pidfile := homeDir + "/" + "universalmenu.pid"
+	return pidfile
+}
+
+func togglePidFile() {
+	if goof.Exists(pidPath()) {
+		os.Exit(1)
+	} else {
+		pidStr := fmt.Sprintf("%v", os.Getpid())
+		log.Printf("Writing pid to %v\n", pidStr)
+		ioutil.WriteFile(pidPath(), []byte(pidStr), 0644)
+	}
+}
+
 func main() {
+	userbytes = []byte("                                                                                          ")
 	//	runtime.LockOSThread()
 	runtime.GOMAXPROCS(4)
 
