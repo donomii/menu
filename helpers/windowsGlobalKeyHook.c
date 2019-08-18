@@ -8,6 +8,7 @@
 //#define _WIN32_WINNT 0x050
 
 int menu_active = 0;
+char * pidfile;
 
 
 void killProcessByName(const char *filename)
@@ -51,10 +52,11 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             if (fEatKeystroke = (p->vkCode == 20)) {
 		if ( (wParam == WM_KEYUP) || (wParam == WM_SYSKEYUP) ) // Keyup
 			                {
-		    printf("Menu active: %i\n", menu_active);
+		    printf("I think the menu is currently %s, so I will %s.\n",  menu_active ? "active": "inactive", menu_active ? "stop it" : "start it");
 		    if (menu_active==1) {
 			    menu_active = 0;
-				killProcessByName("menu.exe");
+				killProcessByName("universal_menu_main.exe");
+				remove(pidfile);
 
 		    } else {
 			    //system("menu.exe");
@@ -100,8 +102,22 @@ int CheckOneInstance()
     return 1;
 }
 
+char * pidPath() {
+	/*
+	printf("USERPROFILE = %s\n", getenv("USERPROFILE"));
+    printf("HOMEDRIVE   = %s\n", getenv("HOMEDRIVE"));
+    printf("HOMEPATH    = %s\n", getenv("HOMEPATH"));
+	*/
+	
+	char * pidfile = calloc(1024,1);
+	snprintf(pidfile, 1023, "%s/universalmenu.pid", getenv("USERPROFILE"));
+	return pidfile;
+}
+
 int main()
 {
+	pidfile = pidPath();
+	
 	if (!CheckOneInstance()) {
 		exit(1);
 		abort();
