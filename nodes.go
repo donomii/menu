@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/donomii/goof"
@@ -57,11 +58,25 @@ func appsMenu() *Node {
 }
 
 func Apps() [][]string {
-	lines := strings.Split(goof.QC([]string{"ls", "/Applications"}), "\n")
+
+	lines := goof.Ls("/Applications")
 	out := [][]string{}
 	for _, v := range lines {
 		name := strings.TrimSuffix(v, ".app")
 		command := fmt.Sprintf("!open \"/Applications/%v\"", v)
+		out = append(out, []string{name, command})
+	}
+	return out
+}
+
+func Recall() [][]string {
+	raw, _ := ioutil.ReadFile(goof.HomeDirectory() + "/recall.txt")
+	lines := strings.Split(string(raw), "\n")
+	out := [][]string{}
+	for _, v := range lines {
+		//name := strings.TrimSuffix(v, ".app")
+		name := v
+		command := "recall"
 		out = append(out, []string{name, command})
 	}
 	return out
@@ -142,9 +157,6 @@ func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
 		}
 	}
 
-	fmt.Println()
-	fmt.Printf("%+v\n", startNode)
-	dumpTree(startNode, 0)
 	return startNode
 
 }
@@ -154,8 +166,6 @@ func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
 		appendNewNodeShort(l, startNode)
 	}
 
-	fmt.Println()
-	fmt.Printf("%+v\n", startNode)
 	dumpTree(startNode, 0)
 	return startNode
 
@@ -168,9 +178,6 @@ func addTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 
-	fmt.Println()
-	fmt.Printf("%+v\n", startNode)
-	dumpTree(startNode, 0)
 	return startNode
 
 }
@@ -182,9 +189,6 @@ func addTextNodesFromStrStrStr(startNode *Node, lines [][]string) *Node {
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 
-	fmt.Println()
-	fmt.Printf("%+v\n", startNode)
-	dumpTree(startNode, 0)
 	return startNode
 
 }
