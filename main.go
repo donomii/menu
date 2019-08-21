@@ -42,14 +42,19 @@ var userbytes []byte
 var lastUserbytes []byte
 var optionsList []string
 var tokens [][]string
+var atlas *nk.FontAtlas
 
 var autoSync bool
 var ui bool
 var repos [][]string
 var lastSelect string
+var lastElemSelected string
+var lastElemSelectedIndex int
 var app *tview.Application
 var workerChan chan string
 var currentNodeLock sync.Mutex
+var fontSmall *nk.Font
+var fontLarge *nk.Font
 
 var currentNode *Node
 
@@ -219,7 +224,7 @@ var confFile string
 // Arrange that main.main runs on main thread.
 func init() {
 	runtime.LockOSThread()
-	log.Println("Locked to main thread")
+	//log.Println("Locked to main thread")
 }
 
 func pidPath() string {
@@ -297,7 +302,7 @@ func main() {
 	win.MakeContextCurrent()
 
 	width, height := win.GetSize()
-	log.Printf("glfw: created window %dx%d", width, height)
+	//log.Printf("glfw: created window %dx%d", width, height)
 
 	if err := gl.Init(); err != nil {
 		closer.Fatalln("opengl: init failed:", err)
@@ -306,19 +311,19 @@ func main() {
 
 	ctx := nk.NkPlatformInit(win, nk.PlatformInstallCallbacks)
 
-	atlas := nk.NewFontAtlas()
+	atlas = nk.NewFontAtlas()
 	nk.NkFontStashBegin(&atlas)
 	/*data, err := ioutil.ReadFile("FreeSans.ttf")
 	if err != nil {
 		panic("Could not find file")
 	}*/
 
-	sansFont := nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 16, nil)
+	fontSmall = nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 16, nil)
+	fontLarge = nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 32, nil)
 	// sansFont := nk.NkFontAtlasAddDefault(atlas, 16, nil)
 	nk.NkFontStashEnd()
-	if sansFont != nil {
-		nk.NkStyleSetFont(ctx, sansFont.Handle())
-	}
+
+	nk.NkStyleSetFont(ctx, fontSmall.Handle())
 
 	exitC := make(chan struct{}, 1)
 	doneC := make(chan struct{}, 1)
