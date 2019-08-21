@@ -7,10 +7,11 @@ import (
 
 	//	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/schollz/closestmatch"
 
 	//"time"
-
+	"runtime"
 	//"unsafe"
 	"io/ioutil"
 	"strconv"
@@ -176,13 +177,18 @@ func drawmenu(ctx *nk.Context, state *State) {
 
 func comboCallback(newString, oldString []byte) []string {
 	news := string(newString)
-	log.Println("Processing ", news)
+	//log.Println("Processing ", news)
 
 	var names []string
 	for _, details := range Apps() {
 		names = append(names, details[0])
 	}
+	for _, details := range Recall() {
+		names = append(names, details[0])
+	}
 	wordsToTest := names
+
+	//log.Println("Words to test: ", wordsToTest)
 
 	// Choose a set of bag sizes, more is more accurate but slower
 	bagSizes := []int{2}
@@ -194,15 +200,57 @@ func comboCallback(newString, oldString []byte) []string {
 
 func activate(index int, value string) bool {
 
-	log.Println("selected ", index, value, Apps()[index+1])
+	log.Println("selected ", index, value)
 	//apps := Apps()
 	for i, v := range Apps() {
 		cmp := strings.Compare(value, v[0])
+
 		if cmp == 0 {
 			cmd := Apps()[i][1][1:]
 			result = goof.Command("/bin/sh", []string{"-c", cmd})
 			result = result + goof.Command("cmd", []string{"/c", cmd})
 			return true
+		}
+		for _, v := range Recall() {
+			name := v[0]
+			//log.Println("Searching for", value, name)
+			cmp := strings.Compare(value, name)
+			if cmp == 0 {
+				//log.Println("Found", value, v[1])
+				if v[1] == "recall" {
+
+					//Copy to clipboard
+					bits := strings.SplitN(name, " | ", 2)
+					data := bits[1]
+					if strings.HasPrefix(data, "http") {
+						url := data
+						log.Println("Opening ", data, "in browser")
+						var err error
+						switch runtime.GOOS {
+						case "linux":
+							goof.QC([]string{"xdg-open", url})
+						case "windows":
+							goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
+						case "darwin":
+
+							goof.QC([]string{"open", url})
+						default:
+							err = fmt.Errorf("unsupported platform")
+						}
+						if err != nil {
+							log.Println(err)
+						}
+						return true
+					}
+					log.Println("Copying ", data, "to clipboard")
+					if err := clipboard.WriteAll(data); err != nil {
+						panic(err)
+					}
+
+					return true
+				}
+
+			}
 		}
 	}
 	return false
@@ -223,12 +271,15 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
 	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyEnter) > 0 {
-		fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
+		//fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
 		if lastEnterDown == false {
 			ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
 			ed.ActiveBuffer.Formatter.Cursor++
 
-			activate(-1, comboCallback(userbytes, lastUserbytes)[0])
+			if activate(-1, comboCallback(userbytes, lastUserbytes)[lastElemSelectedIndex]) {
+				os.Remove(pidPath())
+				os.Exit(0)
+			}
 		}
 		lastEnterDown = true
 	} else {
@@ -236,7 +287,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	}
 
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyBackspace) > 0 {
-		fmt.Printf("Back: %+v\n", ctx.Input().GetKeyboard())
+		//fmt.Printf("Back: %+v\n", ctx.Input().GetKeyboard())
 		if lastBackspaceDown == false {
 			dispatch("DELETE-LEFT", ed)
 		}
@@ -246,7 +297,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	}
 
 	if update > 0 {
-
+		nk.NkStyleSetFont(ctx, fontSmall.Handle())
 		drawmenu(ctx, state)
 
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
@@ -304,38 +355,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				nk.NkComboEnd(ctx)
 			}
 		}
-
-		nk.NkLayoutRowDynamic(ctx, 25, 1)
-		{
-			//fmt.Println("Width:", width)
-			lastUserbytes = bytes.Map(func(r rune) rune { return r }, userbytes)
-			var lenStr = int32(len(userbytes))
-			nk.NkEditFocus(ctx, nk.EditAlwaysInsertMode)
-			nk.NkEditString(ctx, nk.EditAlwaysInsertMode, userbytes, &lenStr, 512, nk.NkFilterAscii) //FIXME
-
-			nk.NkLabelWrap(ctx, string(userbytes))
-
-			ret := bytes.Compare(lastUserbytes, userbytes)
-
-			if ret != 0 {
-				//log.Println("Text string changed!", lastUserbytes, "|", userbytes)
-				//Handle the change
-				optionsList = comboCallback(userbytes, lastUserbytes)
-			}
-		}
-
-		//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
-
-		for _, v := range optionsList {
-			nk.NkLayoutRowDynamic(ctx, 25, 1)
-			clicked := nk.NkComboItemLabel(ctx, v, nk.TextLeft)
-			if clicked > 0 {
-				if activate(-1, v) {
-					os.Remove(pidPath())
-					os.Exit(0)
-				}
-			}
-		}
+		SpeedSearch(ctx)
 
 	}
 
@@ -350,6 +370,49 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	gl.ClearColor(bg[0], bg[1], bg[2], bg[3])
 	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
 	win.SwapBuffers()
+}
+
+func SpeedSearch(ctx *nk.Context) {
+
+	nk.NkStyleSetFont(ctx, fontLarge.Handle())
+	nk.NkLayoutRowDynamic(ctx, 50, 1)
+	{
+		//fmt.Println("Width:", width)
+		lastUserbytes = bytes.Map(func(r rune) rune { return r }, userbytes)
+		var lenStr = int32(len(userbytes))
+		nk.NkEditFocus(ctx, nk.EditAlwaysInsertMode)
+		nk.NkEditString(ctx, nk.EditAlwaysInsertMode, userbytes, &lenStr, 512, nk.NkFilterAscii) //FIXME
+
+		nk.NkLabelWrap(ctx, string(userbytes))
+
+		ret := bytes.Compare(lastUserbytes, userbytes)
+
+		if ret != 0 {
+			//log.Println("Text string changed!", lastUserbytes, "|", userbytes)
+			//Handle the change
+			optionsList = comboCallback(userbytes, lastUserbytes)
+		}
+	}
+
+	//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
+
+	for i, v := range optionsList {
+		if i == 0 {
+			lastElemSelectedIndex = 0
+			lastElemSelected = v
+		}
+
+		nk.NkStyleSetFont(ctx, fontLarge.Handle())
+
+		nk.NkLayoutRowDynamic(ctx, 50, 1)
+		clicked := nk.NkButtonLabel(ctx, v)
+		if clicked > 0 {
+			if activate(-1, v) {
+				os.Remove(pidPath())
+				os.Exit(0)
+			}
+		}
+	}
 }
 
 func ButtonBox(ctx *nk.Context) {
@@ -367,6 +430,7 @@ func ButtonBox(ctx *nk.Context) {
 					fmt.Println("Data:", vv.Data)
 					result = vv.Data
 					if !strings.HasPrefix(command, "!") && !strings.HasPrefix(command, "&") {
+
 						currentThing = append(currentThing, v)
 						updateCurrentNode(v)
 					} else {
