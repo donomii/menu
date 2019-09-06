@@ -8,5 +8,5 @@ before_install:
   - sudo apt-get install -y libportaudio-dev libxrandr-dev libxinerama-dev  libxinerama1 libx11-dev libxcursor-dev libxi-dev xorg-dev
   - git clone https://github.com/glfw/glfw && mkdir build && cd build && cmake ../glfw && make -j4 && sudo make install
 
- script:
+script:
   - sh build.bat
