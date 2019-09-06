@@ -3,7 +3,6 @@ language: go
 go:
   - "1.11"
   - master
-
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libportaudio-dev libxrandr-dev libxinerama-dev  libxinerama1 libx11-dev libxcursor-dev libxi-dev xorg-dev
