@@ -9,4 +9,5 @@ before_install:
   - git clone https://github.com/glfw/glfw && mkdir build && cd build && cmake ../glfw && make -j4 && sudo make install
 
 script:
+  - pwd
   - sh build.bat
