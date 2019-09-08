@@ -13,4 +13,4 @@ before_install:
 script:
   - pwd
   - ls
-  - cd .. && sh build.bat
+  - cd .. && sh build_linux.bat
