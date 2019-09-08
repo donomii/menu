@@ -5,7 +5,7 @@ go:
   - master
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y libxrandr-dev libxinerama-dev  libxinerama1 libx11-dev libxcursor-dev libxi-dev xorg-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
+  - sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxrandr-dev libxinerama-dev  libxinerama1 libxcursor-dev libxi-dev xorg-dev libglu1-mesa-dev freeglut3-dev mesa-common-dev
   - git clone https://github.com/glfw/glfw && mkdir build && cd build && cmake ../glfw && make -j4 && sudo make install
   - go get ./...
   - go get github.com/donomii/menu
