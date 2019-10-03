@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 
@@ -60,7 +61,10 @@ func appsMenu() *Node {
 	return node
 }
 
+var appCache [][]string
+
 func Apps() [][]string {
+
 	out := [][]string{}
 	switch runtime.GOOS {
 	//case "linux":
@@ -80,7 +84,7 @@ func Apps() [][]string {
 			}
 		}
 		log.Println(out)
-		return out
+
 	case "darwin":
 		lines := goof.Ls("/Applications")
 
@@ -89,11 +93,33 @@ func Apps() [][]string {
 			command := fmt.Sprintf("!open \"/Applications/%v\"", v)
 			out = append(out, []string{name, command})
 		}
-		return out
+
+	case "linux":
+		src := goof.Command("find", []string{"/usr/share/applications", "~/.local/share/applications", "-name", "*.desktop"})
+		lines := strings.Split(src, "\n")
+		out := [][]string{}
+		for _, v := range lines {
+			content, _ := ioutil.ReadFile(v)
+			contents := strings.Split(string(content), "\n")
+			matches := goof.ListGrep("Exec=", contents)
+			if len(matches) > 0 {
+				bits := strings.Split(matches[0], "=") //FIXME
+				exeString := bits[1]
+				displayName := path.Base(v)
+				//fmt.Println(displayName,"|",exeString)
+				out = append(out, []string{displayName, " " + exeString})
+			}
+		}
 	default:
 		log.Println("unsupported platform when trying to get applications")
 	}
-	return out
+
+	if appCache == nil {
+		appCache = out
+		return out
+	} else {
+		return appCache
+	}
 
 }
 
