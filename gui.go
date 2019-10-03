@@ -206,7 +206,8 @@ func activate(index int, value string) bool {
 		cmp := strings.Compare(value, v[0])
 
 		if cmp == 0 {
-			cmd := Apps()[i][1][1:]
+			cmd := Apps()[i][1][1:] //FIXME that 1 should be 0
+			log.Println("Starting ", cmd)
 			result = goof.Command("/bin/sh", []string{"-c", cmd})
 			result = result + goof.Command("cmd", []string{"/c", cmd})
 			return true
@@ -271,17 +272,25 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
 	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyEnter) > 0 {
-		//fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
+		fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
 		if lastEnterDown == false {
 			ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
 			ed.ActiveBuffer.Formatter.Cursor++
 
+			//If menu launches too quickly, the user's finger will still be on Enter, but there will be nothing to select
+			log.Println("Last elem selected:", len(comboCallback(userbytes, lastUserbytes)), ",",lastElemSelectedIndex)
+			if len(comboCallback(userbytes, lastUserbytes))>lastElemSelectedIndex {
+			lastEnterDown = true
 			if activate(-1, comboCallback(userbytes, lastUserbytes)[lastElemSelectedIndex]) {
 				os.Remove(pidPath())
 				os.Exit(0)
 			}
+		} else {
+		lastEnterDown = false
 		}
-		lastEnterDown = true
+		lastEnterDown = true //FIXME  If I take this out it crashes
+
+		}
 	} else {
 		lastEnterDown = false
 	}
@@ -344,7 +353,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 			size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
 			if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
 				nk.NkLayoutRowDynamic(ctx, 120, 1)
-				state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
+				//state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
 				nk.NkLayoutRowDynamic(ctx, 25, 1)
 				r, g, b, a := state.bgColor.RGBAi()
 				r = nk.NkPropertyi(ctx, "#R:", 0, r, 255, 1, 1)
@@ -583,7 +592,7 @@ func QuickFileEditor(ctx *nk.Context) {
 		l = keys.GetTextLen()
 		ll := *l
 		if ll > 0 {
-			//fmt.Printf("%+v\n", ctx.Input())
+			fmt.Printf("input: %+v\n", ctx.Input())
 			s := fmt.Sprintf("\"%vu%04x\"", `\`, int(text[0]))
 			s2, _ := strconv.Unquote(s)
 			/*log.Println(err)
