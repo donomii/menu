@@ -73,7 +73,7 @@ func Apps() [][]string {
 	return out
 	*/
 	if appCache ==nil {
-		src := goof.Command("find", []string{"/usr/share/applications",  "-name", "*.desktop"})
+		src := goof.Command("find", []string{"/usr/share/applications", "~/.local/share/applications", "-name", "*.desktop"})
 		lines := strings.Split(src, "\n")
 		out := [][]string{}
 		for _, v := range lines {
