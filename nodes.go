@@ -4,6 +4,9 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
+	"runtime"
 	"strings"
 
 	"github.com/donomii/goof"
@@ -58,15 +61,40 @@ func appsMenu() *Node {
 }
 
 func Apps() [][]string {
-
-	lines := goof.Ls("/Applications")
 	out := [][]string{}
-	for _, v := range lines {
-		name := strings.TrimSuffix(v, ".app")
-		command := fmt.Sprintf("!open \"/Applications/%v\"", v)
-		out = append(out, []string{name, command})
+	switch runtime.GOOS {
+	//case "linux":
+	case "windows":
+		for _, progDir := range []string{"ProgramData", "AppData"} {
+			appPath := os.Getenv(progDir) + "\\Microsoft\\Windows\\Start Menu\\Programs\\"
+			log.Println("Loading apps from", appPath)
+			lines := goof.LslR(appPath)
+
+			for _, v := range lines {
+				if strings.HasSuffix(v, ".lnk") {
+					name := strings.TrimSuffix(v, ".lnk")
+					name = strings.TrimPrefix(name, appPath)
+					command := fmt.Sprintf("!%v", v)
+					out = append(out, []string{name, command})
+				}
+			}
+		}
+		log.Println(out)
+		return out
+	case "darwin":
+		lines := goof.Ls("/Applications")
+
+		for _, v := range lines {
+			name := strings.TrimSuffix(v, ".app")
+			command := fmt.Sprintf("!open \"/Applications/%v\"", v)
+			out = append(out, []string{name, command})
+		}
+		return out
+	default:
+		log.Println("unsupported platform when trying to get applications")
 	}
 	return out
+
 }
 
 func Recall() [][]string {

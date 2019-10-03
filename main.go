@@ -32,6 +32,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+var AppMode int
 var form *glim.FormatParams
 var demoText = "hi"
 var displaySplit string = "None"
@@ -235,6 +236,7 @@ func pidPath() string {
 
 func togglePidFile() {
 	if goof.Exists(pidPath()) {
+		fmt.Println("Found lockfile, exiting")
 		os.Exit(1)
 	} else {
 		pidStr := fmt.Sprintf("%v", os.Getpid())
@@ -248,7 +250,6 @@ func main() {
 	//	runtime.LockOSThread()
 	runtime.GOMAXPROCS(4)
 
-	togglePidFile()
 	confFile = goof.ConfigFilePath(".menu.json")
 	log.Println("Loading config from:", confFile)
 	configBytes, conferr := ioutil.ReadFile(confFile)
@@ -257,12 +258,14 @@ func main() {
 		ioutil.WriteFile(confFile, []byte("test"), 0644)
 		configBytes, conferr = ioutil.ReadFile(confFile)
 	}
-
+	var force bool
 	toml.Decode(string(configBytes), &config)
-	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
+	flag.BoolVar(&force, "force", false, "Ignore lockfile and start")
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
-
+	if !force {
+		togglePidFile()
+	}
 	go func() {
 		ed = NewEditor()
 		//Create a text formatter

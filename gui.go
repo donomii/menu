@@ -4,6 +4,7 @@ package main
 import (
 	"bytes"
 	"strings"
+	"time"
 
 	//	"time"
 
@@ -36,6 +37,12 @@ import (
 
 	//"github.com/donomii/glim"
 	"github.com/donomii/goof"
+)
+
+const ( // iota is reset to 0
+	mode_search     = iota
+	mode_editor     = iota
+	mode_buttonmenu = iota
 )
 
 var mapTex *nktemplates.Texture
@@ -175,15 +182,22 @@ func drawmenu(ctx *nk.Context, state *State) {
 	nk.NkMenubarEnd(ctx)
 }
 
+var recallCache [][]string
+
 func comboCallback(newString, oldString []byte) []string {
 	news := string(newString)
 	//log.Println("Processing ", news)
-
+	if appCache == nil {
+		appCache = Apps()
+	}
+	if recallCache == nil {
+		recallCache = Recall()
+	}
 	var names []string
-	for _, details := range Apps() {
+	for _, details := range appCache {
 		names = append(names, details[0])
 	}
-	for _, details := range Recall() {
+	for _, details := range recallCache {
 		names = append(names, details[0])
 	}
 	wordsToTest := names
@@ -198,18 +212,35 @@ func comboCallback(newString, oldString []byte) []string {
 	return cm.ClosestN(news, 5)
 }
 
+var appCache [][]string
+
 func activate(index int, value string) bool {
 
 	log.Println("selected ", index, value)
 	//apps := Apps()
-	for i, v := range Apps() {
+	if appCache == nil {
+		appCache = Apps()
+	}
+	for i, v := range appCache {
 		cmp := strings.Compare(value, v[0])
 
 		if cmp == 0 {
-			cmd := Apps()[i][1][1:]
-			result = goof.Command("/bin/sh", []string{"-c", cmd})
-			result = result + goof.Command("cmd", []string{"/c", cmd})
-			return true
+
+			cmd := appCache[i][1][1:]
+			log.Println("Starting", cmd)
+			switch runtime.GOOS {
+			//case "linux":
+			case "windows":
+				go goof.Command("cmd", []string{"/c", cmd})
+				time.Sleep(100000000 * time.Nanosecond) //FIXME use cmd.Exec or w/e to start program then exit
+				return true
+			case "darwin":
+				result = goof.Command("/bin/sh", []string{"-c", cmd})
+				return true
+			default:
+				log.Println("unsupported platform when trying to run application")
+			}
+
 		}
 		for _, v := range Recall() {
 			name := v[0]
@@ -257,19 +288,7 @@ func activate(index int, value string) bool {
 
 }
 
-func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
-
-	maxVertexBuffer := 512 * 1024
-	maxElementBuffer := 128 * 1024
-
-	nk.NkPlatformNewFrame()
-
-	// Layout
-	bounds := nk.NkRect(50, 50, 230, 250)
-	update := nk.NkBegin(ctx, "Menu", bounds,
-		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
-	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
-	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
+func handleKeys(ctx *nk.Context) {
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyEnter) > 0 {
 		//fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
 		if lastEnterDown == false {
@@ -295,65 +314,84 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	} else {
 		lastBackspaceDown = false
 	}
+}
+
+func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
+
+	maxVertexBuffer := 512 * 1024
+	maxElementBuffer := 128 * 1024
+
+	nk.NkPlatformNewFrame()
+
+	// Layout
+	bounds := nk.NkRect(50, 50, 230, 250)
+	update := nk.NkBegin(ctx, "Menu", bounds,
+		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
+	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
+	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
+	handleKeys(ctx)
 
 	if update > 0 {
 		nk.NkStyleSetFont(ctx, fontSmall.Handle())
-		drawmenu(ctx, state)
-
-		nk.NkLayoutRowDynamic(ctx, 20, 3)
-		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " > "), nk.TextLeft)
-			if 0 < nk.NkButtonLabel(ctx, "Undo") {
-				if len(currentThing) > 1 {
-					updateCurrentNode(currentThing[len(currentThing)-2])
-					currentThing = currentThing[:len(currentThing)-1]
-				}
-			}
-			if 0 < nk.NkButtonLabel(ctx, "Go Back") {
-				if len(currentThing) > 1 {
-					updateCurrentNode(currentThing[len(currentThing)-2])
-				}
-			}
+		if AppMode == mode_editor {
+			drawmenu(ctx, state)
 		}
 
-		if getCurrentNode().Name == "File Manager" {
-			QuickFileEditor(ctx)
-		} else {
+		if AppMode == mode_buttonmenu {
+			nk.NkLayoutRowDynamic(ctx, 20, 3)
+			{
+				nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " > "), nk.TextLeft)
+				if 0 < nk.NkButtonLabel(ctx, "Undo") {
+					if len(currentThing) > 1 {
+						updateCurrentNode(currentThing[len(currentThing)-2])
+						currentThing = currentThing[:len(currentThing)-1]
+					}
+				}
+				if 0 < nk.NkButtonLabel(ctx, "Go Back") {
+					if len(currentThing) > 1 {
+						updateCurrentNode(currentThing[len(currentThing)-2])
+					}
+				}
+			}
 			ButtonBox(ctx)
+
+			nk.NkLayoutRowDynamic(ctx, 20, 3)
+			{
+				nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
+				if 0 < nk.NkButtonLabel(ctx, "Run") {
+					cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+					result = goof.Command("cmd", []string{"/c", cmd})
+					result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+				}
+
+				if 0 < nk.NkButtonLabel(ctx, "Run interactive") {
+					goof.QCI(NodesToStringArray(currentThing[1:]))
+
+				}
+			}
+			nk.NkLayoutRowDynamic(ctx, 25, 1)
+			{
+
+				//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
+
+				size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
+				if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
+					nk.NkLayoutRowDynamic(ctx, 120, 1)
+					state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
+					nk.NkLayoutRowDynamic(ctx, 25, 1)
+					r, g, b, a := state.bgColor.RGBAi()
+					r = nk.NkPropertyi(ctx, "#R:", 0, r, 255, 1, 1)
+					g = nk.NkPropertyi(ctx, "#G:", 0, g, 255, 1, 1)
+					b = nk.NkPropertyi(ctx, "#B:", 0, b, 255, 1, 1)
+					a = nk.NkPropertyi(ctx, "#A:", 0, a, 255, 1, 1)
+					state.bgColor.SetRGBAi(r, g, b, a)
+					nk.NkComboEnd(ctx)
+				}
+			}
 		}
+		if AppMode == mode_editor {
+			QuickFileEditor(ctx)
 
-		nk.NkLayoutRowDynamic(ctx, 20, 3)
-		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
-			if 0 < nk.NkButtonLabel(ctx, "Run") {
-				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
-				result = goof.Command("cmd", []string{"/c", cmd})
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-			}
-
-			if 0 < nk.NkButtonLabel(ctx, "Run interactive") {
-				goof.QCI(NodesToStringArray(currentThing[1:]))
-
-			}
-		}
-		nk.NkLayoutRowDynamic(ctx, 25, 1)
-		{
-
-			//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
-
-			size := nk.NkVec2(nk.NkWidgetWidth(ctx), 400)
-			if nk.NkComboBeginColor(ctx, state.bgColor, size) > 0 {
-				nk.NkLayoutRowDynamic(ctx, 120, 1)
-				state.bgColor = nk.NkColorPicker(ctx, state.bgColor, nk.ColorFormatRGBA)
-				nk.NkLayoutRowDynamic(ctx, 25, 1)
-				r, g, b, a := state.bgColor.RGBAi()
-				r = nk.NkPropertyi(ctx, "#R:", 0, r, 255, 1, 1)
-				g = nk.NkPropertyi(ctx, "#G:", 0, g, 255, 1, 1)
-				b = nk.NkPropertyi(ctx, "#B:", 0, b, 255, 1, 1)
-				a = nk.NkPropertyi(ctx, "#A:", 0, a, 255, 1, 1)
-				state.bgColor.SetRGBAi(r, g, b, a)
-				nk.NkComboEnd(ctx)
-			}
 		}
 		SpeedSearch(ctx)
 
@@ -368,7 +406,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	gl.Viewport(0, 0, int32(width), int32(height))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.ClearColor(bg[0], bg[1], bg[2], bg[3])
-	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
+	nk.NkPlatformRender(nk.AntiAliasingOff, maxVertexBuffer, maxElementBuffer)
 	win.SwapBuffers()
 }
 
@@ -393,6 +431,9 @@ func SpeedSearch(ctx *nk.Context) {
 			optionsList = comboCallback(userbytes, lastUserbytes)
 		}
 	}
+	if len(optionsList) > 3 {
+		optionsList = optionsList[:3]
+	}
 
 	//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
 
@@ -401,8 +442,6 @@ func SpeedSearch(ctx *nk.Context) {
 			lastElemSelectedIndex = 0
 			lastElemSelected = v
 		}
-
-		nk.NkStyleSetFont(ctx, fontLarge.Handle())
 
 		nk.NkLayoutRowDynamic(ctx, 50, 1)
 		clicked := nk.NkButtonLabel(ctx, v)
