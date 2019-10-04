@@ -236,7 +236,7 @@ func pidPath() string {
 
 func togglePidFile() {
 	if goof.Exists(pidPath()) {
-		fmt.Println("Found lockfile, exiting")
+		fmt.Println("Found lockfile at", pidPath(), ", exiting")
 		os.Exit(1)
 	} else {
 		pidStr := fmt.Sprintf("%v", os.Getpid())
