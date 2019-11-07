@@ -11,20 +11,13 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/schollz/closestmatch"
 
-	//"time"
 	"runtime"
-	//"unsafe"
-	"io/ioutil"
-	"strconv"
 
-	"github.com/donomii/glim"
 	"github.com/donomii/nuklear-templates"
 
 	"github.com/go-gl/gl/v3.2-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/golang-ui/nuklear/nk"
-
-	"github.com/mattn/go-shellwords"
 
 	//"text/scanner"
 
@@ -95,6 +88,8 @@ func defaultMenu(ctx *nk.Context) {
 		if ui {
 			app.Stop()
 		}
+		os.Remove(pidPath())
+		os.Exit(0)
 		os.Exit(0)
 	}
 }
@@ -289,6 +284,10 @@ func activate(index int, value string) bool {
 }
 
 func handleKeys(ctx *nk.Context) {
+	if time.Now().Sub(lastKey).Seconds() < 0.1 {
+		return
+	}
+	lastKey = time.Now()
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyEnter) > 0 {
 		fmt.Printf("Enter: %+v\n", ctx.Input().GetKeyboard())
 		if lastEnterDown == false {
@@ -314,13 +313,31 @@ func handleKeys(ctx *nk.Context) {
 	}
 
 	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyBackspace) > 0 {
-		//fmt.Printf("Back: %+v\n", ctx.Input().GetKeyboard())
 		if lastBackspaceDown == false {
 			dispatch("DELETE-LEFT", ed)
 		}
 		lastBackspaceDown = true
 	} else {
 		lastBackspaceDown = false
+	}
+
+	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyUp) > 0 {
+
+		activeSelection = activeSelection - 1
+		if activeSelection < 0 {
+			activeSelection = len(optionsList) - 1
+		}
+	}
+
+	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyDown) > 0 {
+		activeSelection = activeSelection + 1
+		if activeSelection > len(optionsList) {
+			activeSelection = 0
+		}
+	}
+	if nk.NkInputIsKeyPressed(ctx.Input(), nk.KeyTab) > 0 {
+		os.Remove(pidPath())
+		os.Exit(0)
 	}
 }
 
@@ -361,7 +378,6 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 					}
 				}
 			}
-			ButtonBox(ctx)
 
 			nk.NkLayoutRowDynamic(ctx, 20, 3)
 			{
@@ -398,10 +414,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 				}
 			}
 		}
-		if AppMode == mode_editor {
-			QuickFileEditor(ctx)
 
-		}
 		SpeedSearch(ctx)
 
 	}
@@ -440,8 +453,8 @@ func SpeedSearch(ctx *nk.Context) {
 			optionsList = comboCallback(userbytes, lastUserbytes)
 		}
 	}
-	if len(optionsList) > 3 {
-		optionsList = optionsList[:3]
+	if len(optionsList) > 10 {
+		optionsList = optionsList[:10]
 	}
 
 	//pf := nk.NewPluginFilterRef(unsafe.Pointer(&nk.NkFilterDefault))
@@ -453,16 +466,28 @@ func SpeedSearch(ctx *nk.Context) {
 		}
 
 		nk.NkLayoutRowDynamic(ctx, 50, 1)
-		clicked := nk.NkButtonLabel(ctx, v)
+		var clicked int32
+		if i == activeSelection {
+			clicked = nk.NkOptionLabel(ctx, "--->"+v+"<---", 0)
+		} else {
+			clicked = nk.NkButtonLabel(ctx, v)
+		}
 		if clicked > 0 {
-			if activate(-1, v) {
-				os.Remove(pidPath())
-				os.Exit(0)
+			log.Printf("buttons: %+v", ctx.Input().GetMouse().GetButtons())
+			butts := ctx.Input().GetMouse().GetButtons()
+
+			if *butts[0].GetDown() > 0 {
+				log.Println("clicked", clicked)
+				if activate(-1, v) {
+					os.Remove(pidPath())
+					os.Exit(0)
+				}
 			}
 		}
 	}
 }
 
+/*
 func ButtonBox(ctx *nk.Context) {
 	nk.NkLayoutRowDynamic(ctx, 400, 2)
 	{
@@ -595,6 +620,9 @@ func ButtonBox(ctx *nk.Context) {
 	}
 
 }
+*/
+
+/*
 
 func QuickFileEditor(ctx *nk.Context) {
 
@@ -634,12 +662,7 @@ func QuickFileEditor(ctx *nk.Context) {
 			fmt.Printf("input: %+v\n", ctx.Input())
 			s := fmt.Sprintf("\"%vu%04x\"", `\`, int(text[0]))
 			s2, _ := strconv.Unquote(s)
-			/*log.Println(err)
-			log.Printf("Text: %v, %v\n", s, s2)
-			newBytes := append(EditBytes[:form.Cursor], []byte(s2)...)
-			newBytes = append(newBytes, EditBytes[form.Cursor:]...)
-			form.Cursor++
-			*/
+
 			if ed.ActiveBuffer.Formatter.Cursor < 0 {
 				ed.ActiveBuffer.Formatter.Cursor = 0
 			}
@@ -689,7 +712,7 @@ func QuickFileEditor(ctx *nk.Context) {
 				//gl.DeleteTextures(testim)
 				//t, err := nktemplates.LoadImageFile(fmt.Sprintf("%v/progress%05v.png", output, fnum), width, height)
 				//t := nktemplates.LoadImageData(globalPic, width, height)
-				mapTex, _ = nktemplates.RawTexture(glim.Uint8ToBytes(pic), int32(width), int32(height), mapTex)
+				mapTex, _ = nktemplates.RawTexture(glim.Uint8ToBytes(pic, nil), int32(width), int32(height), mapTex)
 				var err error = nil
 				if err == nil {
 					testim := nk.NkImageId(int32(mapTex.Handle))
@@ -697,12 +720,7 @@ func QuickFileEditor(ctx *nk.Context) {
 					//{
 					//log.Println("Drawing image")
 
-					/*
-						if nk.NkButtonImage(ctx, testim) > 0 {
-							ed.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", ed.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], "\n", ed.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
-							ed.ActiveBuffer.Formatter.Cursor++
-						}
-					*/
+
 					nk.NkImage(ctx, testim)
 					//}
 				} else {
@@ -714,3 +732,4 @@ func QuickFileEditor(ctx *nk.Context) {
 	}
 
 }
+*/
