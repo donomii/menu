@@ -57,6 +57,8 @@ var currentNodeLock sync.Mutex
 var fontSmall *nk.Font
 var fontLarge *nk.Font
 
+var activeSelection = 1
+
 var currentNode *Node
 
 func updateCurrentNode(n *Node) {
@@ -222,9 +224,12 @@ var ed *GlobalConfig
 var config UserConfig
 var confFile string
 
+var lastKey time.Time
+
 // Arrange that main.main runs on main thread.
 func init() {
 	runtime.LockOSThread()
+	lastKey = time.Now()
 	//log.Println("Locked to main thread")
 }
 
