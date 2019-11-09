@@ -123,19 +123,6 @@ func Apps() [][]string {
 
 }
 
-func Recall() [][]string {
-	raw, _ := ioutil.ReadFile(goof.HomeDirectory() + "/recall.txt")
-	lines := strings.Split(string(raw), "\n")
-	out := [][]string{}
-	for _, v := range lines {
-		//name := strings.TrimSuffix(v, ".app")
-		name := v
-		command := "recall"
-		out = append(out, []string{name, command})
-	}
-	return out
-}
-
 func controlMenu() *Node {
 	node := makeNodeShort("System controls", []*Node{})
 	addTextNodesFromStrStr(node,
