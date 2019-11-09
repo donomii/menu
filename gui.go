@@ -145,7 +145,7 @@ func activate(index int, value string) bool {
 		if cmp == 0 {
 
 			cmd := appCache[i][1][1:]
-			log.Println("Starting", cmd)
+
 			switch runtime.GOOS {
 			case "linux":
 				log.Println("Starting ", cmd)
@@ -153,8 +153,10 @@ func activate(index int, value string) bool {
 				result = result + goof.Command("cmd", []string{"/c", cmd})
 				return true
 			case "windows":
-				go goof.Command("cmd", []string{"/c", cmd})
-				time.Sleep(100000000 * time.Nanosecond) //FIXME use cmd.Exec or w/e to start program then exit
+				cmdArray := []string{"/c", cmd}
+				log.Println("Starting cmd", cmdArray)
+				go goof.Command("c:\\Windows\\System32\\cmd.exe", cmdArray)
+				time.Sleep(5 * time.Second) //FIXME use cmd.Exec or w/e to start program then exit
 				return true
 			case "darwin":
 				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
