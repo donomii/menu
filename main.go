@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -24,8 +23,8 @@ import (
 
 	"flag"
 	"fmt"
-
 	"log"
+	"strings"
 
 	"github.com/donomii/glim"
 	"github.com/donomii/goof"
@@ -60,12 +59,6 @@ var fontLarge *nk.Font
 var activeSelection = 1
 
 var currentNode *Node
-
-func updateCurrentNode(n *Node) {
-	currentNodeLock.Lock()
-	currentNode = n
-	currentNodeLock.Unlock()
-}
 
 func getCurrentNode() *Node {
 	currentNodeLock.Lock()
@@ -108,95 +101,16 @@ func UberMenu() *Node {
 
 }
 
-var menuData = `
-[
-"!arc list",
-"!git status",
-"git add",
-"!!git commit",
-"!ls -gGh"
-]`
-
 var myMenu Menu
 
 func configFile() *Node {
 	return makeNodeShort("Edit Config", []*Node{})
 }
 
-/*
-func MailSummaries() [][]string {
-	lines := getSummaries(50)
-	out := [][]string{}
-	for _, v := range lines {
-		command := ""
-		name := v[0]
-		data := v[1]
-		out = append(out, []string{name, command, data})
-	}
-	return out
-}
-*/
-
-/*
-func AddAppNodes(n *Node) *Node {
-
-}
-*/
-
 func gitHistoryMenu() *Node {
 	node := makeNodeShort("previous git commands", []*Node{})
 	addTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
 	return node
-}
-
-func gitMenu() *Node {
-	node := makeNodeShort("git menu", []*Node{})
-	addTextNodesFromString(node, git())
-	return node
-}
-func git() string {
-	return `\&ls
-	\&lslR
-git status
-git status --porcelain
-git push
-git pull
-git pull --rebase
-git commit \&lslR
-git commit .
-git rebase
-git merge
-git stash
-git stash apply
-git diff
-git reset
-git reset --hard
-git branch -a
-git show "!git branch -a"
-git merge ""
-git add \&lslR
-git log
-git log shortlog
-git log -p
-git log --oneline
-git log --stat
-git log --graph
-git log --oneline --decorate
-git log --oneline --decorate --graph
-git log --oneline --decorate --graph --simplify-by-decoration
-git diff --summary
-git submodule init
-git submodule update --init --recursive
-git submodule sync
-imapcli status
-imapcli list
-imapcli read 1
-imapcli read 2
-imapcli read 3
-imapcli read 4
-imapcli read 5
-!set
-`
 }
 
 var header string
@@ -250,6 +164,19 @@ func togglePidFile() {
 	}
 }
 
+func Recall() [][]string {
+	raw, _ := ioutil.ReadFile(goof.HomeDirectory() + "/recall.txt")
+	lines := strings.Split(string(raw), "\n")
+	out := [][]string{}
+	for _, v := range lines {
+		//name := strings.TrimSuffix(v, ".app")
+		name := v
+		command := "recall"
+		out = append(out, []string{name, command})
+	}
+	return out
+}
+
 func main() {
 	userbytes = []byte("                                                                                          ")
 	//	runtime.LockOSThread()
@@ -276,16 +203,6 @@ func main() {
 		//Create a text formatter
 		form = glim.NewFormatter()
 
-		jsonerr := json.Unmarshal([]byte(menuData), &myMenu)
-		if jsonerr != nil {
-			fmt.Println(jsonerr)
-		}
-	}()
-
-	updateCurrentNode(makeNodeShort("Loading", []*Node{}))
-	go func() {
-		//time.Sleep(1 * time.Second)
-		updateCurrentNode(UberMenu())
 	}()
 
 	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
@@ -316,6 +233,34 @@ func main() {
 		closer.Fatalln("opengl: init failed:", err)
 	}
 	gl.Viewport(0, 0, int32(width-1), int32(height-1))
+
+	win.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+
+		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
+
+		if mods == 2 && action == 1 && key != 341 {
+			mask := ^byte(64 + 128)
+			log.Printf("key mask: %#b", mask)
+			val := byte(key)
+			log.Printf("key val: %#b", val)
+			b := mask & val
+			log.Printf("key byte: %#b", b)
+
+		}
+
+		if action == 0 && mods == 0 {
+			switch key {
+			case 257: //Enter
+				if activate(activeSelection, comboCallback(userbytes, lastUserbytes)[activeSelection]) {
+					os.Remove(pidPath())
+					os.Exit(0)
+				}
+			case 256: //Escape
+				os.Remove(pidPath())
+				os.Exit(0)
+			}
+		}
+	})
 
 	ctx := nk.NkPlatformInit(win, nk.PlatformInstallCallbacks)
 
@@ -370,7 +315,7 @@ func main() {
 	if ui {
 		for {
 
-			currentNode, currentThing, result = doui(currentNode, currentThing, result)
+			//currentNode, currentThing, result = doui(currentNode, currentThing, result)
 		}
 	}
 }
