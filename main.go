@@ -165,7 +165,16 @@ func togglePidFile() {
 }
 
 func Recall() [][]string {
-	raw, _ := ioutil.ReadFile(goof.HomeDirectory() + "/recall.txt")
+  recallFile := goof.ConfigFilePath(".menu.recall.txt")
+  log.Println("Reading default configuration file to", recallFile)
+  var raw []byte
+  if goof.Exists(recallFile) {
+    raw, _ = ioutil.ReadFile(recallFile)
+  } else {
+    log.Println("Writing default configuration file to", recallFile)
+    raw = []byte(fmt.Sprintf("Edit Menu Configuration | ^Edit %v", recallFile))
+    ioutil.WriteFile(recallFile, raw, 0600)
+  }
 	lines := strings.Split(string(raw), "\n")
 	out := [][]string{}
 	for _, v := range lines {
