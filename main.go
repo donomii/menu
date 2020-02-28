@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"runtime/debug"
 
 	"github.com/BurntSushi/toml"
 
@@ -143,6 +144,7 @@ var lastKey time.Time
 // Arrange that main.main runs on main thread.
 func init() {
 	runtime.LockOSThread()
+	debug.SetGCPercent(-1)
 	lastKey = time.Now()
 	//log.Println("Locked to main thread")
 }
@@ -165,16 +167,16 @@ func togglePidFile() {
 }
 
 func Recall() [][]string {
-  recallFile := goof.ConfigFilePath(".menu.recall.txt")
-  log.Println("Reading default configuration file to", recallFile)
-  var raw []byte
-  if goof.Exists(recallFile) {
-    raw, _ = ioutil.ReadFile(recallFile)
-  } else {
-    log.Println("Writing default configuration file to", recallFile)
-    raw = []byte(fmt.Sprintf("Edit Menu Configuration | ^Edit %v", recallFile))
-    ioutil.WriteFile(recallFile, raw, 0600)
-  }
+	recallFile := goof.ConfigFilePath(".menu.recall.txt")
+	log.Println("Reading default configuration file to", recallFile)
+	var raw []byte
+	if goof.Exists(recallFile) {
+		raw, _ = ioutil.ReadFile(recallFile)
+	} else {
+		log.Println("Writing default configuration file to", recallFile)
+		raw = []byte(fmt.Sprintf("Edit Menu Configuration | ^Edit %v", recallFile))
+		ioutil.WriteFile(recallFile, raw, 0600)
+	}
 	lines := strings.Split(string(raw), "\n")
 	out := [][]string{}
 	for _, v := range lines {
@@ -316,6 +318,7 @@ func main() {
 			winWidth, winHeight = win.GetSize()
 			//log.Printf("glfw: created window %dx%d", width, height)
 			gfxMain(win, ctx, state)
+			runtime.GC()
 		}
 	}
 
