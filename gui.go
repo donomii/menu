@@ -326,5 +326,16 @@ func SpeedSearch(ctx *nk.Context) {
 				}
 			}
 		}
+
+	}
+	clicked := nk.NkButtonLabel(ctx, "Edit Custom Results")
+
+	if clicked > 0 {
+		log.Printf("Opening config here")
+		recallFile := goof.ConfigFilePath(".menu.recall.txt")
+		loadEnsureRecallFile(recallFile)
+		//goof.QC([]string{"open", recallFile})
+		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
+		//butts := ctx.Input().GetMouse().GetButtons()
 	}
 }
