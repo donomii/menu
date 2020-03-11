@@ -57,7 +57,7 @@ var currentNodeLock sync.Mutex
 var fontSmall *nk.Font
 var fontLarge *nk.Font
 
-var activeSelection = 1
+var activeSelection = 0
 
 var currentNode *Node
 

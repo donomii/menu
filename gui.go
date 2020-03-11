@@ -253,7 +253,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 	// Layout
 	bounds := nk.NkRect(50, 50, 230, 250)
 	update := nk.NkBegin(ctx, "Menu", bounds,
-		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable|nk.WindowMinimizable|nk.WindowTitle)
+		nk.WindowBorder|nk.WindowMovable|nk.WindowScalable)
 	nk.NkWindowSetPosition(ctx, "Menu", nk.NkVec2(0, 0))
 	nk.NkWindowSetSize(ctx, "Menu", nk.NkVec2(float32(winWidth), float32(winHeight)))
 	handleKeys(ctx)
@@ -280,8 +280,16 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 func SpeedSearch(ctx *nk.Context) {
 
 	nk.NkStyleSetFont(ctx, fontLarge.Handle())
+
 	nk.NkLayoutRowDynamic(ctx, 50, 1)
 	{
+
+		var text string
+
+		text = "Search"
+
+		nk.NkButtonLabel(ctx, text)
+
 		lastUserbytes = bytes.Map(func(r rune) rune { return r }, userbytes)
 		var lenStr = int32(len(userbytes))
 		nk.NkEditFocus(ctx, nk.EditAlwaysInsertMode)
@@ -310,9 +318,9 @@ func SpeedSearch(ctx *nk.Context) {
 		nk.NkLayoutRowDynamic(ctx, 50, 1)
 		var clicked int32
 		if i == activeSelection {
-			clicked = nk.NkOptionLabel(ctx, "--->"+v+"<---", 0)
+			clicked = nk.NkOptionLabel(ctx, ""+v+"", 0)
 		} else {
-			clicked = nk.NkButtonLabel(ctx, v)
+			clicked = nk.NkOptionLabel(ctx, v, 1)
 		}
 		if clicked > 0 {
 			log.Printf("buttons: %+v", ctx.Input().GetMouse().GetButtons())
@@ -328,7 +336,10 @@ func SpeedSearch(ctx *nk.Context) {
 		}
 
 	}
-	clicked := nk.NkButtonLabel(ctx, "Edit Custom Results")
+	var text string
+	text = "Add personal search results"
+
+	clicked := nk.NkButtonLabel(ctx, text)
 
 	if clicked > 0 {
 		log.Printf("Opening config here")
@@ -336,6 +347,8 @@ func SpeedSearch(ctx *nk.Context) {
 		loadEnsureRecallFile(recallFile)
 		//goof.QC([]string{"open", recallFile})
 		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
+		go goof.Command("/usr/bin/open", []string{recallFile})
 		//butts := ctx.Input().GetMouse().GetButtons()
 	}
+
 }
