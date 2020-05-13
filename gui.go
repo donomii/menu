@@ -136,7 +136,7 @@ func comboCallback(newString, oldString []byte) []string {
 
 func activate(index int, value string) bool {
 
-	log.Println("selected ", index, value)
+	log.Println("selected for activation:", index, value)
 	appCache := Apps()
 
 	for i, v := range appCache {
@@ -166,7 +166,10 @@ func activate(index int, value string) bool {
 			}
 
 		}
-		for _, v := range Recall() {
+		if recallCache == nil {
+			recallCache = Recall()
+		}
+		for _, v := range recallCache {
 			name := v[0]
 			//log.Println("Searching for", value, name)
 			cmp := strings.Compare(value, name)
@@ -318,16 +321,17 @@ func SpeedSearch(ctx *nk.Context) {
 		nk.NkLayoutRowDynamic(ctx, 50, 1)
 		var clicked int32
 		if i == activeSelection {
-			clicked = nk.NkOptionLabel(ctx, ""+v+"", 0)
+			clicked = nk.NkButtonLabel(ctx, "->>"+v+"<<-")
 		} else {
-			clicked = nk.NkOptionLabel(ctx, v, 1)
+			clicked = nk.NkButtonLabel(ctx, v)
 		}
 		if clicked > 0 {
-			log.Printf("buttons: %+v", ctx.Input().GetMouse().GetButtons())
+			//log.Printf("buttons: %+v", ctx.Input().GetMouse().GetButtons())
 			butts := ctx.Input().GetMouse().GetButtons()
 
 			if *butts[0].GetDown() > 0 {
-				log.Println("clicked", clicked)
+				log.Println("clicked on item:", i)
+
 				if activate(-1, v) {
 					os.Remove(pidPath())
 					os.Exit(0)
@@ -344,7 +348,7 @@ func SpeedSearch(ctx *nk.Context) {
 	if clicked > 0 {
 		log.Printf("Opening config here")
 		recallFile := goof.ConfigFilePath(".menu.recall.txt")
-		loadEnsureRecallFile(recallFile)
+		loadEnsureRecallFile(recallFile) //FIXME use recallCache?
 		//goof.QC([]string{"open", recallFile})
 		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
 		go goof.Command("/usr/bin/open", []string{recallFile})

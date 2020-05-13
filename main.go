@@ -180,7 +180,7 @@ func loadEnsureRecallFile(recallFile string) []byte {
 }
 func Recall() [][]string {
 	recallFile := goof.ConfigFilePath(".menu.recall.txt")
-	log.Println("Reading default configuration file to", recallFile)
+	log.Println("Reading default configuration file from", recallFile)
 
 	raw := loadEnsureRecallFile(recallFile)
 	lines := strings.Split(string(raw), "\n")

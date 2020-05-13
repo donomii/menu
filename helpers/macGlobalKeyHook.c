@@ -27,7 +27,6 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
 
     printf("Key: %i\n", keycode);
     
-    // Swap 'a' (keycode=0) and 'z' (keycode=6).
     if (keycode == (CGKeyCode)111){
         if (menu_active==1) {
             system("pkill -f universal_menu_main &");
