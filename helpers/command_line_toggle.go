@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	//"time"
 
 	"github.com/donomii/goof"
 )
