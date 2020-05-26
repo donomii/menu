@@ -1,5 +1,5 @@
 // nodes.go
-package main
+package menu
 
 import (
 	"fmt"
@@ -14,6 +14,24 @@ import (
 	"github.com/mattn/go-shellwords"
 )
 
+
+type Node struct {
+	Name     string
+	SubNodes []*Node
+	Command  string
+	Data     string
+}
+
+func MakeNodeShort(name string, subNodes []*Node) *Node {
+	return &Node{name, subNodes, name, ""}
+}
+
+func MakeNodeLong(name string, subNodes []*Node, command, data string) *Node {
+	return &Node{name, subNodes, name, data}
+}
+
+
+
 func (n *Node) String() string {
 	return n.Name
 }
@@ -22,13 +40,13 @@ func (n *Node) ToString() string {
 	return n.Name
 }
 
-func makeStartNode() *Node {
-	n := makeNodeShort("Command:", []*Node{})
+func MakeStartNode() *Node {
+	n := MakeNodeShort("Command:", []*Node{})
 
 	return n
 }
 
-func findNode(n *Node, name string) *Node {
+func FindNode(n *Node, name string) *Node {
 	if n == nil {
 		return n
 	}
@@ -52,16 +70,16 @@ func NodesToStringArray(ns []*Node) []string {
 }
 
 func fileManagerMenu() *Node {
-	return makeNodeShort("File Manager", []*Node{})
+	return MakeNodeShort("File Manager", []*Node{})
 }
-func appsMenu() *Node {
-	node := makeNodeShort("Applications Menu",
+var appCache [][]string
+func AppsMenu() *Node {
+	node := MakeNodeShort("Applications Menu",
 		[]*Node{})
-	addTextNodesFromStrStr(node, Apps())
+	AddTextNodesFromStrStr(node, Apps())
 	return node
 }
 
-var appCache [][]string
 
 func Apps() [][]string {
 
@@ -124,22 +142,22 @@ func Apps() [][]string {
 }
 
 func controlMenu() *Node {
-	node := makeNodeShort("System controls", []*Node{})
-	addTextNodesFromStrStr(node,
+	node := MakeNodeShort("System controls", []*Node{})
+	AddTextNodesFromStrStr(node,
 		[][]string{
 			[]string{"pmset sleepnow"},
 		})
 	return node
 }
 
-func historyMenu() *Node {
+func HistoryMenu() *Node {
 	return addHistoryNodes()
 }
 
 func addHistoryNodes() *Node {
 	src := goof.Command("fish", []string{"-c", "history"})
 	lines := strings.Split(src, "\n")
-	startNode := makeNodeShort("Previous command lines", []*Node{})
+	startNode := MakeNodeShort("Previous command lines", []*Node{})
 	for _, l := range lines {
 		currentNode := startNode
 		/*
@@ -149,22 +167,22 @@ func addHistoryNodes() *Node {
 				for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 			        text := s.TokenText()
 					fmt.Printf("%s: %s\n", s.Position, text)
-			        if findNode(currentNode, text) == nil {
+			        if FindNode(currentNode, text) == nil {
 			            newNode := Node{text, []*Node{}}
 			            currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 			            currentNode = &newNode
 			        } else {
-			            currentNode = findNode(currentNode, text)
+			            currentNode = FindNode(currentNode, text)
 			        }
 		*/
 		args, _ := shellwords.Parse(l)
 		for _, text := range args {
-			if findNode(currentNode, text) == nil {
-				newNode := makeNodeShort(text, []*Node{})
+			if FindNode(currentNode, text) == nil {
+				newNode := MakeNodeShort(text, []*Node{})
 				currentNode.SubNodes = append(currentNode.SubNodes, newNode)
 				currentNode = newNode
 			} else {
-				currentNode = findNode(currentNode, text)
+				currentNode = FindNode(currentNode, text)
 			}
 
 		}
@@ -172,28 +190,28 @@ func addHistoryNodes() *Node {
 	return startNode
 }
 
-func addTextNodesFromString(startNode *Node, src string) *Node {
+func AddTextNodesFromString(startNode *Node, src string) *Node {
 	lines := strings.Split(src, "\n")
-	return addTextNodesFromStringList(startNode, lines)
+	return AddTextNodesFromStringList(startNode, lines)
 }
 
 func appendNewNodeShort(text string, aNode *Node) *Node {
-	newNode := makeNodeShort(text, []*Node{})
+	newNode := MakeNodeShort(text, []*Node{})
 	aNode.SubNodes = append(aNode.SubNodes, newNode)
 	return aNode
 }
 
-func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
+func AddTextNodesFromStringList(startNode *Node, lines []string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
 		args, _ := shellwords.Parse(l)
 		for _, text := range args {
-			if findNode(currentNode, text) == nil {
-				newNode := makeNodeShort(text, []*Node{})
+			if FindNode(currentNode, text) == nil {
+				newNode := MakeNodeShort(text, []*Node{})
 				currentNode.SubNodes = append(currentNode.SubNodes, newNode)
 				currentNode = newNode
 			} else {
-				currentNode = findNode(currentNode, text)
+				currentNode = FindNode(currentNode, text)
 			}
 		}
 	}
@@ -202,7 +220,7 @@ func addTextNodesFromStringList(startNode *Node, lines []string) *Node {
 
 }
 
-func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
+func AddTextNodesFromCommands(startNode *Node, lines []string) *Node {
 	for _, l := range lines {
 		appendNewNodeShort(l, startNode)
 	}
@@ -212,7 +230,7 @@ func addTextNodesFromCommands(startNode *Node, lines []string) *Node {
 
 }
 
-func addTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
+func AddTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
 		newNode := Node{l[0], []*Node{}, l[1], ""}
@@ -223,7 +241,7 @@ func addTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 
 }
 
-func addTextNodesFromStrStrStr(startNode *Node, lines [][]string) *Node {
+func AddTextNodesFromStrStrStr(startNode *Node, lines [][]string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
 		newNode := Node{l[0], []*Node{}, l[1], l[2]}

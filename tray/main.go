@@ -8,6 +8,7 @@ import (
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/donomii/menu"
 )
 
 func main() {
@@ -20,6 +21,13 @@ func main() {
 }
 
 func onReady() {
+	m := menu.AppsMenu()
+	fmt.Printf("%+v, %v\n", m.SubNodes,m)
+	for _,v := range m.SubNodes {
+
+		systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+	}
+	//fmt.Printf("%+v\n", menu.Apps())
 	systray.SetTemplateIcon(icon.Data, icon.Data)
 	systray.SetTitle("Awesome App")
 	systray.SetTooltip("Lantern")

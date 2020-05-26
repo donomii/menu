@@ -1,6 +1,6 @@
 // +build !VR
 
-package main
+package menu
 
 import (
 	"io"
@@ -301,7 +301,7 @@ func StartSshConn(buffId int, user, password, serverAndPort string) {
 	}
 	//go io.Copy(os.Stdout, stdout)
 	go processPort(stdout)
-	dispatch("TAIL", gc)
+	Dispatch("TAIL", gc)
 
 	stderr, err := session.StderrPipe()
 	if err != nil {
@@ -383,15 +383,15 @@ func PreviousBuffer(gc *GlobalConfig) {
 
 func ToggleVerticalMode(gc *GlobalConfig) {
 	if gc.ActiveBuffer.Formatter.Vertical {
-		dispatch("HORIZONTAL-MODE", gc)
+		Dispatch("HORIZONTAL-MODE", gc)
 	} else {
-		dispatch("VERTICAL-MODE", gc)
+		Dispatch("VERTICAL-MODE", gc)
 	}
 }
 
 func PasteFromClipBoard(gc *GlobalConfig, buf *Buffer) {
 	text, _ := clipboard.ReadAll()
-	dispatch("EXCISE-SELECTION", gc)
+	Dispatch("EXCISE-SELECTION", gc)
 
 	if gc.ActiveBuffer.Formatter.Cursor < 0 {
 		gc.ActiveBuffer.Formatter.Cursor = 0
@@ -401,7 +401,7 @@ func PasteFromClipBoard(gc *GlobalConfig, buf *Buffer) {
 }
 
 //This function carries out commands.  It is the interface between your scripting, and the actual engine operation
-func dispatch(command string, gc *GlobalConfig) {
+func Dispatch(command string, gc *GlobalConfig) {
 	switch command {
 	case "DELETE-LEFT":
 		if gc.ActiveBuffer.Formatter.Cursor > 0 {
@@ -484,19 +484,19 @@ func handleEvent(a app.App, i interface{}) {
 		case key.CodeHome:
 			gc.ActiveBuffer.Formatter.Cursor = SOL(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
 		case key.CodeEnd:
-			dispatch("SEEK-EOL", gc)
+			Dispatch("SEEK-EOL", gc)
 		case key.CodeLeftArrow:
-			dispatch("PREVIOUS-CHARACTER", gc)
+			Dispatch("PREVIOUS-CHARACTER", gc)
 		case key.CodeRightArrow:
-			dispatch("NEXT-CHARACTER", gc)
+			Dispatch("NEXT-CHARACTER", gc)
 		case key.CodeUpArrow:
-			dispatch("PREVIOUS-LINE", gc)
+			Dispatch("PREVIOUS-LINE", gc)
 		case key.CodeDownArrow:
-			dispatch("NEXT-LINE", gc)
+			Dispatch("NEXT-LINE", gc)
 		case key.CodePageDown:
-			dispatch("PAGEDOWN", gc)
+			Dispatch("PAGEDOWN", gc)
 		case key.CodePageUp:
-			dispatch("PAGEUP", gc)
+			Dispatch("PAGEUP", gc)
 		case key.CodeA:
 			if e.Modifiers > 0 {
 				gc.ActiveBuffer.Formatter.SelectStart = 0
@@ -505,13 +505,13 @@ func handleEvent(a app.App, i interface{}) {
 			}
 		case key.CodeC:
 			if e.Modifiers > 0 {
-				dispatch("COPY-TO-CLIPBOARD", gc)
+				Dispatch("COPY-TO-CLIPBOARD", gc)
 				return
 			}
 		case key.CodeX:
 			if e.Modifiers > 0 {
-				dispatch("COPY-TO-CLIPBOARD", gc)
-				dispatch("EXCISE-SELECTION", gc)
+				Dispatch("COPY-TO-CLIPBOARD", gc)
+				Dispatch("EXCISE-SELECTION", gc)
 				gc.ActiveBuffer.Formatter.Cursor = gc.ActiveBuffer.Formatter.SelectStart
 				gc.ActiveBuffer.Formatter.SelectStart = -1
 				gc.ActiveBuffer.Formatter.SelectEnd = -1
@@ -519,8 +519,8 @@ func handleEvent(a app.App, i interface{}) {
 			}
 		case key.CodeV:
 			if e.Modifiers > 0 {
-				dispatch("EXCISE-SELECTION", gc)
-				dispatch("PASTE-FROM-CLIPBOARD", gc)
+				Dispatch("EXCISE-SELECTION", gc)
+				Dispatch("PASTE-FROM-CLIPBOARD", gc)
 			}
 		default:
 			if gc.ActiveBuffer.InputMode {
@@ -536,7 +536,7 @@ func handleEvent(a app.App, i interface{}) {
 						gc.ActiveBuffer.InputMode = false
 					default:
 						if gc.ActiveBuffer.Formatter.SelectEnd > 0 {
-							dispatch("EXCISE-SELECTION", gc)
+							Dispatch("EXCISE-SELECTION", gc)
 						}
 						if gc.ActiveBuffer.Formatter.Cursor < 0 {
 							gc.ActiveBuffer.Formatter.Cursor = 0
@@ -551,7 +551,7 @@ func handleEvent(a app.App, i interface{}) {
 				switch e.Code {
 				case key.CodeX:
 					if e.Modifiers > 0 {
-						dispatch("EXCISE-SELECTION", gc)
+						Dispatch("EXCISE-SELECTION", gc)
 					}
 
 				case key.CodeA:
@@ -571,37 +571,37 @@ func handleEvent(a app.App, i interface{}) {
 				case 'L':
 					go startSshConn(1, "", "", "")
 				case 'N':
-					dispatch("NEXT-BUFFER", gc)
+					Dispatch("NEXT-BUFFER", gc)
 				case 'p':
-					dispatch("PASTE-FROM-CLIPBOARD", gc)
+					Dispatch("PASTE-FROM-CLIPBOARD", gc)
 				case 'y':
-					dispatch("COPY-TO-CLIPBOARD", gc)
+					Dispatch("COPY-TO-CLIPBOARD", gc)
 				case '~':
-					dispatch("SAVE-FILE", gc)
+					Dispatch("SAVE-FILE", gc)
 				case 'i':
-					dispatch("INPUT-MODE", gc)
+					Dispatch("INPUT-MODE", gc)
 				case '0':
-					dispatch("START-OF-LINE", gc)
+					Dispatch("START-OF-LINE", gc)
 				case '^':
-					dispatch("START-OF-TEXT-ON-LINE", gc)
+					Dispatch("START-OF-TEXT-ON-LINE", gc)
 				case '$':
-					dispatch("END-OF-LINE", gc)
+					Dispatch("END-OF-LINE", gc)
 				case 'A':
-					dispatch("END-OF-LINE", gc)
-					dispatch("INPUT-MODE", gc)
+					Dispatch("END-OF-LINE", gc)
+					Dispatch("INPUT-MODE", gc)
 				case 'a':
 					gc.ActiveBuffer.Formatter.Cursor++
-					dispatch("INPUT-MODE", gc)
+					Dispatch("INPUT-MODE", gc)
 				case 'k':
 					gc.ActiveBuffer.Formatter.Cursor = scanToPrevLine(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
 				case 'j':
 					gc.ActiveBuffer.Formatter.Cursor = scanToNextLine(gc.ActiveBuffer.Data.Text, gc.ActiveBuffer.Formatter.Cursor)
 				case 'l':
-					dispatch("NEXT-CHARACTER", gc)
+					Dispatch("NEXT-CHARACTER", gc)
 				case 'h':
-					dispatch("PREVIOUS-CHARACTER", gc)
+					Dispatch("PREVIOUS-CHARACTER", gc)
 				case 'T':
-					dispatch("TAIL", gc)
+					Dispatch("TAIL", gc)
 				case 'W':
 					if gc.ActiveBuffer.Formatter.Outline {
 						gc.ActiveBuffer.Formatter.Outline = false
@@ -609,11 +609,11 @@ func handleEvent(a app.App, i interface{}) {
 						gc.ActiveBuffer.Formatter.Outline = true
 					}
 				case 'S':
-					dispatch("TOGGLE-VERTICAL-MODE", gc)
+					Dispatch("TOGGLE-VERTICAL-MODE", gc)
 				case '+':
-					dispatch("INCREASE-FONT", gc)
+					Dispatch("INCREASE-FONT", gc)
 				case '-':
-					dispatch("REDUCE-FONT", gc)
+					Dispatch("REDUCE-FONT", gc)
 				case 'B':
 					glim.ClearAllCaches()
 					Log2Buff("Caches cleared")
