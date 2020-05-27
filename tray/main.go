@@ -5,11 +5,25 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/donomii/menu"
 )
+
+func UberMenu() *menu.Node {
+	node := menu.MakeNodeLong("Main menu",
+		[]*menu.Node{
+			menu.AppsMenu(),
+			menu.HistoryMenu(),
+			//gitMenu(),
+			//gitHistoryMenu(),
+			//fileManagerMenu(),
+			//controlMenu(),
+		},
+		"", "")
+	return node
+}
 
 func main() {
 	onExit := func() {
@@ -21,9 +35,9 @@ func main() {
 }
 
 func onReady() {
-	m := menu.AppsMenu()
-	fmt.Printf("%+v, %v\n", m.SubNodes,m)
-	for _,v := range m.SubNodes {
+	m := UberMenu()
+	fmt.Printf("%+v, %v\n", m.SubNodes, m)
+	for _, v := range m.SubNodes {
 
 		systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
 	}

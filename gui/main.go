@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/BurntSushi/toml"
-"github.com/donomii/menu"
+	"github.com/donomii/menu"
 
 	"golang.org/x/image/font/gofont/goregular"
 
@@ -72,6 +72,7 @@ func getCurrentNode() *menu.Node {
 var currentThing []*menu.Node
 
 type Menu []string
+
 func UberMenu() *menu.Node {
 	node := menu.MakeNodeLong("Main menu",
 		[]*menu.Node{
@@ -84,7 +85,6 @@ func UberMenu() *menu.Node {
 		},
 		"", "")
 	return node
-
 }
 
 var myMenu Menu
