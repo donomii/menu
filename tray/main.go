@@ -34,12 +34,43 @@ func main() {
 	systray.Run(onReady, onExit)
 }
 
+func AddSub(m *menu.Node, parent *systray.MenuItem) {
+	fmt.Printf("*****%+v, %v\n", m.SubNodes, m)
+
+	for _, v := range m.SubNodes {
+		if len(v.SubNodes) > 0 {
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+			AddSub(v, p)
+		} else {
+			fmt.Println("Adding submenu item ", v.Name)
+			parent.AddSubMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+		}
+	}
+}
+
 func onReady() {
 	m := UberMenu()
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
+	systray.AddMenuItem("UMH", "Universal Menu")
+	subMenuTop := systray.AddMenuItem("Test", "SubMenu Test (top)")
+	subMenuMiddle := subMenuTop.AddSubMenuItem("SubMenu - Level 2", "SubMenu Test (middle)")
+	subMenuMiddle.AddSubMenuItem("SubMenu - Level 3", "SubMenu Test (bottom)")
+	subMenuMiddle.AddSubMenuItem("Panic!", "SubMenu Test (bottom)")
+	var appMen *systray.MenuItem
+	apps := menu.AppsMenu()
+	appMen = systray.AddMenuItem("test", "test")
+	AddSub(apps, appMen)
 	for _, v := range m.SubNodes {
 
-		systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+		if len(v.SubNodes) > 0 {
+			fmt.Println("Adding submenu to top ", v.Name)
+			p := systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+			AddSub(v, p)
+		} else {
+			fmt.Println("Adding to top ", v.Name)
+			systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+		}
+		//AddSub()
 	}
 	//fmt.Printf("%+v\n", menu.Apps())
 	systray.SetTemplateIcon(icon.Data, icon.Data)
