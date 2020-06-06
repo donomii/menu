@@ -59,33 +59,9 @@ static HANDLE CornerThread = INVALID_HANDLE_VALUE;
 
 
 
-void killProcessByName(const char *filename)
-{
-    HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0);
-    PROCESSENTRY32 pEntry;
-    pEntry.dwSize = sizeof (pEntry);
-    BOOL hRes = Process32First(hSnapShot, &pEntry);
-    while (hRes)
-    {
-        if (strcmp(pEntry.szExeFile, filename) == 0)
-        {
-            HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, 0,
-                                          (DWORD) pEntry.th32ProcessID);
-            if (hProcess != NULL)
-            {
-                TerminateProcess(hProcess, 9);
-                CloseHandle(hProcess);
-            }
-        }
-        hRes = Process32Next(hSnapShot, &pEntry);
-    }
-    CloseHandle(hSnapShot);
-}
-
-
 unsigned long long ptime () {
  FILETIME ft;
-     GetSystemTimeAsFileTime(&ft);
+     GetSystemTimePreciseAsFileTime(&ft);
          unsigned long long tt = ft.dwHighDateTime;
 	     tt <<=32;
 	         tt |= ft.dwLowDateTime;
@@ -104,17 +80,19 @@ unsigned long long ptime () {
     POINT nowPoint;
     unsigned long long nowTime;
     for(;;){
+    Sleep(100);
 	 nowTime=ptime();
 	    if (GetCursorPos(&nowPoint) == FALSE) {
-		return 1;
+		//return 1;
 	    }
 
 	    unsigned long long elapsed_ns = nowTime-lastTime;
 	    unsigned long long elapsed_ms = elapsed_ns/1000;
-	    //printf("Last: %lld, Now: %lld, Elapsed: %lld\n", lastTime, nowTime, elapsed_ms);
-	    if (elapsed_ms>1000) {
+	    int xdiff = nowPoint.x-lastPoint.x;
+	    if (nowTime>lastTime && elapsed_ms>1000) {
 		if (nowPoint.x==lastPoint.x && nowPoint.y==lastPoint.y) {
 			if (!clicked) {
+	    printf("Last: %lld, Now: %lld, Elapsed: %lld\n", lastTime, nowTime, elapsed_ms);
 				INPUT Inputs[2] = {0};
 
 				Inputs[0].type = INPUT_MOUSE;
@@ -127,6 +105,15 @@ unsigned long long ptime () {
 				clicked = 1;
 				    printf("Click\n");
 			}
+		} else {
+	
+			    if (GetCursorPos(&lastPoint) == FALSE) {
+				        printf("Failed to get cursor\n");
+					        return 1;
+						    }
+			        clicked = 0;
+				    lastTime=ptime();
+
 		}
 
 	    }
@@ -144,13 +131,13 @@ static LRESULT CALLBACK MouseHookCallback(int nCode, WPARAM wParam, LPARAM lPara
     if (wParam != WM_MOUSEMOVE) {
 	           goto finish;
     }
-    lastTime=ptime();
 
     if (GetCursorPos(&lastPoint) == FALSE) {
     printf("Failed to get cursor\n");
         return 1;
     }
     clicked = 0;
+    lastTime=ptime();
     //printf("Moved\n");
 
 finish:
@@ -162,7 +149,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     MSG Msg;
     HHOOK MouseHook;
 
-    printf("On corner, will execute %s\n", targetProgram);
+    printf("Auto click after 1 second\n", targetProgram);
 
     if (!(MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookCallback, NULL, 0)))
         return 1;
