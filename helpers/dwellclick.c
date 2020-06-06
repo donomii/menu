@@ -111,7 +111,7 @@ unsigned long long ptime () {
 
 	    unsigned long long elapsed_ns = nowTime-lastTime;
 	    unsigned long long elapsed_ms = elapsed_ns/1000;
-	    printf("Last: %lld, Now: %lld, Elapsed: %lld\n", lastTime, nowTime, elapsed_ms);
+	    //printf("Last: %lld, Now: %lld, Elapsed: %lld\n", lastTime, nowTime, elapsed_ms);
 	    if (elapsed_ms>1000) {
 		if (nowPoint.x==lastPoint.x && nowPoint.y==lastPoint.y) {
 			if (!clicked) {
