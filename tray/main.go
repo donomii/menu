@@ -15,11 +15,11 @@ func UberMenu() *menu.Node {
 	node := menu.MakeNodeLong("Main menu",
 		[]*menu.Node{
 			menu.AppsMenu(),
-			menu.HistoryMenu(),
-			//gitMenu(),
+			//menu.HistoryMenu(),
+			//menu.GitMenu(),
 			//gitHistoryMenu(),
 			//fileManagerMenu(),
-			//controlMenu(),
+			menu.ControlMenu(),
 		},
 		"", "")
 	return node
@@ -39,7 +39,7 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 
 	for _, v := range m.SubNodes {
 		if len(v.SubNodes) > 0 {
-			p := parent.AddSubMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name, v.Command), v.Command)
 			AddSub(v, p)
 		} else {
 			fmt.Println("Adding submenu item ", v.Name)
@@ -74,8 +74,8 @@ func onReady() {
 	}
 	//fmt.Printf("%+v\n", menu.Apps())
 	systray.SetTemplateIcon(icon.Data, icon.Data)
-	systray.SetTitle("Awesome App")
-	systray.SetTooltip("Lantern")
+	systray.SetTitle("UMH")
+	systray.SetTooltip("Universaal Menu")
 	mQuitOrig := systray.AddMenuItem("Quit", "Quit the whole app")
 	go func() {
 		<-mQuitOrig.ClickedCh

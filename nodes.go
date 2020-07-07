@@ -14,7 +14,6 @@ import (
 	"github.com/mattn/go-shellwords"
 )
 
-
 type Node struct {
 	Name     string
 	SubNodes []*Node
@@ -29,8 +28,6 @@ func MakeNodeShort(name string, subNodes []*Node) *Node {
 func MakeNodeLong(name string, subNodes []*Node, command, data string) *Node {
 	return &Node{name, subNodes, name, data}
 }
-
-
 
 func (n *Node) String() string {
 	return n.Name
@@ -72,14 +69,15 @@ func NodesToStringArray(ns []*Node) []string {
 func fileManagerMenu() *Node {
 	return MakeNodeShort("File Manager", []*Node{})
 }
+
 var appCache [][]string
+
 func AppsMenu() *Node {
 	node := MakeNodeShort("Applications Menu",
 		[]*Node{})
 	AddTextNodesFromStrStr(node, Apps())
 	return node
 }
-
 
 func Apps() [][]string {
 
@@ -141,12 +139,9 @@ func Apps() [][]string {
 
 }
 
-func controlMenu() *Node {
+func ControlMenu() *Node {
 	node := MakeNodeShort("System controls", []*Node{})
-	AddTextNodesFromStrStr(node,
-		[][]string{
-			[]string{"pmset sleepnow"},
-		})
+	AddTextNodesFromCommands(node, []string{"pmset sleepnow"})
 	return node
 }
 
