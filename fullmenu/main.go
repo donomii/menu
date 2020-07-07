@@ -1,13 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
-	"os"
 	"runtime"
-	"runtime/debug"
 
 	"github.com/BurntSushi/toml"
-	"github.com/donomii/menu"
 
 	"golang.org/x/image/font/gofont/goregular"
 
@@ -25,59 +23,69 @@ import (
 
 	"flag"
 	"fmt"
+
 	"log"
-	"strings"
 
 	"github.com/donomii/glim"
 	"github.com/donomii/goof"
 	"github.com/rivo/tview"
 )
 
-var AppMode int
 var form *glim.FormatParams
 var demoText = "hi"
 var displaySplit string = "None"
 var result = ""
 var EditStr = `lalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalala`
 var EditBytes []byte
-var userbytes []byte
-var lastUserbytes []byte
-var optionsList []string
 var tokens [][]string
-var atlas *nk.FontAtlas
 
 var autoSync bool
 var ui bool
 var repos [][]string
 var lastSelect string
-var lastElemSelected string
-var lastElemSelectedIndex int
 var app *tview.Application
 var workerChan chan string
 var currentNodeLock sync.Mutex
-var fontSmall *nk.Font
-var fontLarge *nk.Font
 
-var activeSelection = 0
+var currentNode *Node
 
-var currentNode *menu.Node
+func updateCurrentNode(n *Node) {
+	currentNodeLock.Lock()
+	currentNode = n
+	currentNodeLock.Unlock()
+}
 
-func getCurrentNode() *menu.Node {
+func getCurrentNode() *Node {
 	currentNodeLock.Lock()
 	n := currentNode
 	currentNodeLock.Unlock()
 	return n
 }
 
-var currentThing []*menu.Node
+var currentThing []*Node
 
 type Menu []string
 
-func UberMenu() *menu.Node {
-	node := menu.MakeNodeLong("Main menu",
-		[]*menu.Node{
-			menu.AppsMenu(),
-			menu.HistoryMenu(),
+type Node struct {
+	Name     string
+	SubNodes []*Node
+	Command  string
+	Data     string
+}
+
+func makeNodeShort(name string, subNodes []*Node) *Node {
+	return &Node{name, subNodes, name, ""}
+}
+
+func makeNodeLong(name string, subNodes []*Node, command, data string) *Node {
+	return &Node{name, subNodes, name, data}
+}
+
+func UberMenu() *Node {
+	node := makeNodeLong("Main menu",
+		[]*Node{
+			appsMenu(),
+			historyMenu(),
 			gitMenu(),
 			//gitHistoryMenu(),
 			//fileManagerMenu(),
@@ -85,23 +93,53 @@ func UberMenu() *menu.Node {
 		},
 		"", "")
 	return node
+
 }
+
+var menuData = `
+[
+"!arc list",
+"!git status",
+"git add",
+"!!git commit",
+"!ls -gGh"
+]`
 
 var myMenu Menu
 
-func configFile() *menu.Node {
-	return menu.MakeNodeShort("Edit Config", []*menu.Node{})
+func configFile() *Node {
+	return makeNodeShort("Edit Config", []*Node{})
 }
 
-func gitHistoryMenu() *menu.Node {
-	node := menu.MakeNodeShort("previous git commands", []*menu.Node{})
-	menu.AddTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
+/*
+func MailSummaries() [][]string {
+	lines := getSummaries(50)
+	out := [][]string{}
+	for _, v := range lines {
+		command := ""
+		name := v[0]
+		data := v[1]
+		out = append(out, []string{name, command, data})
+	}
+	return out
+}
+*/
+
+/*
+func AddAppNodes(n *Node) *Node {
+
+}
+*/
+
+func gitHistoryMenu() *Node {
+	node := makeNodeShort("previous git commands", []*Node{})
+	addTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
 	return node
 }
 
-func gitMenu() *menu.Node {
-	node := menu.MakeNodeShort("git menu", []*menu.Node{})
-	menu.AddTextNodesFromString(node, git())
+func gitMenu() *Node {
+	node := makeNodeShort("git menu", []*Node{})
+	addTextNodesFromString(node, git())
 	return node
 }
 func git() string {
@@ -138,6 +176,14 @@ git diff --summary
 git submodule init
 git submodule update --init --recursive
 git submodule sync
+imapcli status
+imapcli list
+imapcli read 1
+imapcli read 2
+imapcli read 3
+imapcli read 4
+imapcli read 5
+!set
 `
 }
 
@@ -162,67 +208,17 @@ type UserConfig struct {
 
 var winWidth = 900
 var winHeight = 900
-var ed *menu.GlobalConfig
+var ed *GlobalConfig
 var config UserConfig
 var confFile string
-
-var lastKey time.Time
 
 // Arrange that main.main runs on main thread.
 func init() {
 	runtime.LockOSThread()
-	debug.SetGCPercent(-1)
-	lastKey = time.Now()
-	//log.Println("Locked to main thread")
-}
-
-func pidPath() string {
-	homeDir := goof.HomeDirectory()
-	pidfile := homeDir + "/" + "universalmenu.pid"
-	return pidfile
-}
-
-func togglePidFile() {
-	if goof.Exists(pidPath()) {
-		fmt.Println("Found lockfile at", pidPath(), ", exiting")
-		os.Exit(1)
-	} else {
-		pidStr := fmt.Sprintf("%v", os.Getpid())
-		log.Printf("Writing pid to %v\n", pidStr)
-		ioutil.WriteFile(pidPath(), []byte(pidStr), 0644)
-	}
-}
-
-func loadEnsureRecallFile(recallFile string) []byte {
-	var raw []byte
-	if goof.Exists(recallFile) {
-
-		raw, _ = ioutil.ReadFile(recallFile)
-	} else {
-		log.Println("Writing default configuration file to", recallFile)
-		raw = []byte(fmt.Sprintf("Recall Config File Location | %v\nReddit | http://reddit.com\nMy password | AbCdEfG", recallFile))
-		ioutil.WriteFile(recallFile, raw, 0600)
-	}
-	return raw
-}
-func Recall() [][]string {
-	recallFile := goof.ConfigFilePath(".menu.recall.txt")
-	log.Println("Reading default configuration file from", recallFile)
-
-	raw := loadEnsureRecallFile(recallFile)
-	lines := strings.Split(string(raw), "\n")
-	out := [][]string{}
-	for _, v := range lines {
-		//name := strings.TrimSuffix(v, ".app")
-		name := v
-		command := "recall"
-		out = append(out, []string{name, command})
-	}
-	return out
+	log.Println("Locked to main thread")
 }
 
 func main() {
-	userbytes = []byte("                                                                                          ")
 	//	runtime.LockOSThread()
 	runtime.GOMAXPROCS(4)
 
@@ -234,25 +230,33 @@ func main() {
 		ioutil.WriteFile(confFile, []byte("test"), 0644)
 		configBytes, conferr = ioutil.ReadFile(confFile)
 	}
-	var force bool
+
 	toml.Decode(string(configBytes), &config)
-	flag.BoolVar(&force, "force", false, "Ignore lockfile and start")
+	flag.BoolVar(&autoSync, "auto-sync", false, "Automatically push then pull on clean repositories")
 	flag.BoolVar(&ui, "ui", false, "Experimental graphical user interface")
 	flag.Parse()
-	if !force {
-		togglePidFile()
-	}
+
 	go func() {
-		ed = menu.NewEditor()
+		ed = NewEditor()
 		//Create a text formatter
 		form = glim.NewFormatter()
 
+		jsonerr := json.Unmarshal([]byte(menuData), &myMenu)
+		if jsonerr != nil {
+			fmt.Println(jsonerr)
+		}
+	}()
+
+	updateCurrentNode(makeNodeShort("Loading", []*Node{}))
+	go func() {
+		//time.Sleep(1 * time.Second)
+		updateCurrentNode(UberMenu())
 	}()
 
 	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
 
 	//currentNode =
-	currentThing = []*menu.Node{getCurrentNode()}
+	currentThing = []*Node{getCurrentNode()}
 	//result := ""
 
 	//Nuklear
@@ -271,56 +275,28 @@ func main() {
 	win.MakeContextCurrent()
 
 	width, height := win.GetSize()
-	//log.Printf("glfw: created window %dx%d", width, height)
+	log.Printf("glfw: created window %dx%d", width, height)
 
 	if err := gl.Init(); err != nil {
 		closer.Fatalln("opengl: init failed:", err)
 	}
 	gl.Viewport(0, 0, int32(width-1), int32(height-1))
 
-	win.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-
-		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
-
-		if mods == 2 && action == 1 && key != 341 {
-			mask := ^byte(64 + 128)
-			log.Printf("key mask: %#b", mask)
-			val := byte(key)
-			log.Printf("key val: %#b", val)
-			b := mask & val
-			log.Printf("key byte: %#b", b)
-
-		}
-
-		if action == 0 && mods == 0 {
-			switch key {
-			case 257: //Enter
-				if activate(activeSelection, comboCallback(userbytes, lastUserbytes)[activeSelection]) {
-					os.Remove(pidPath())
-					os.Exit(0)
-				}
-			case 256: //Escape
-				os.Remove(pidPath())
-				os.Exit(0)
-			}
-		}
-	})
-
 	ctx := nk.NkPlatformInit(win, nk.PlatformInstallCallbacks)
 
-	atlas = nk.NewFontAtlas()
+	atlas := nk.NewFontAtlas()
 	nk.NkFontStashBegin(&atlas)
 	/*data, err := ioutil.ReadFile("FreeSans.ttf")
 	if err != nil {
 		panic("Could not find file")
 	}*/
 
-	fontSmall = nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 16, nil)
-	fontLarge = nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 32, nil)
+	sansFont := nk.NkFontAtlasAddFromBytes(atlas, goregular.TTF, 16, nil)
 	// sansFont := nk.NkFontAtlasAddDefault(atlas, 16, nil)
 	nk.NkFontStashEnd()
-
-	nk.NkStyleSetFont(ctx, fontSmall.Handle())
+	if sansFont != nil {
+		nk.NkStyleSetFont(ctx, sansFont.Handle())
+	}
 
 	exitC := make(chan struct{}, 1)
 	doneC := make(chan struct{}, 1)
@@ -351,7 +327,6 @@ func main() {
 			winWidth, winHeight = win.GetSize()
 			//log.Printf("glfw: created window %dx%d", width, height)
 			gfxMain(win, ctx, state)
-			runtime.GC()
 		}
 	}
 
@@ -360,7 +335,7 @@ func main() {
 	if ui {
 		for {
 
-			//currentNode, currentThing, result = doui(currentNode, currentThing, result)
+			currentNode, currentThing, result = doui(currentNode, currentThing, result)
 		}
 	}
 }
