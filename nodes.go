@@ -9,9 +9,13 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/atotto/clipboard"
 
 	"github.com/donomii/goof"
 	"github.com/mattn/go-shellwords"
+	"github.com/schollz/closestmatch"
 )
 
 type Node struct {
@@ -107,6 +111,14 @@ func Apps() [][]string {
 		for _, v := range lines {
 			name := strings.TrimSuffix(v, ".app")
 			command := fmt.Sprintf("!open \"/Applications/%v\"", v)
+			out = append(out, []string{name, command})
+		}
+
+		lines = goof.Ls("/Applications/Utilities")
+
+		for _, v := range lines {
+			name := strings.TrimSuffix(v, ".app")
+			command := fmt.Sprintf("!open \"/Applications/Utilities/%v\"", v)
 			out = append(out, []string{name, command})
 		}
 
@@ -252,5 +264,144 @@ func dumpTree(n *Node, indent int) {
 	for _, v := range n.SubNodes {
 		dumpTree(v, indent+1)
 	}
+
+}
+
+var recallCache [][]string
+
+func Predict(newString []byte) []string {
+	news := string(newString)
+	//log.Println("Processing ", news)
+	if appCache == nil {
+		appCache = Apps()
+	}
+	if recallCache == nil {
+		recallCache = Recall()
+	}
+	var names []string
+	for _, details := range appCache {
+		names = append(names, details[0])
+	}
+	for _, details := range recallCache {
+		names = append(names, details[0])
+	}
+	wordsToTest := names
+
+	//log.Println("Words to test: ", wordsToTest)
+
+	// Choose a set of bag sizes, more is more accurate but slower
+	bagSizes := []int{2}
+
+	// Create a closestmatch object
+	cm := closestmatch.New(wordsToTest, bagSizes)
+	return cm.ClosestN(news, 5)
+}
+
+func loadEnsureRecallFile(recallFile string) []byte {
+	var raw []byte
+	if goof.Exists(recallFile) {
+
+		raw, _ = ioutil.ReadFile(recallFile)
+	} else {
+		log.Println("Writing default configuration file to", recallFile)
+		raw = []byte(fmt.Sprintf("Recall Config File Location | %v\nReddit | http://reddit.com\nMy password | AbCdEfG", recallFile))
+		ioutil.WriteFile(recallFile, raw, 0600)
+	}
+	return raw
+}
+func Recall() [][]string {
+	recallFile := goof.ConfigFilePath(".menu.recall.txt")
+	log.Println("Reading default configuration file from", recallFile)
+
+	raw := loadEnsureRecallFile(recallFile)
+	lines := strings.Split(string(raw), "\n")
+	out := [][]string{}
+	for _, v := range lines {
+		//name := strings.TrimSuffix(v, ".app")
+		name := v
+		command := "recall"
+		out = append(out, []string{name, command})
+	}
+	return out
+}
+
+func Activate(value string) bool {
+	result := ""
+	log.Println("selected for activation:", value)
+	appCache := Apps()
+
+	for i, v := range appCache {
+		cmp := strings.Compare(value, v[0])
+
+		if cmp == 0 {
+
+			cmd := appCache[i][1][1:]
+
+			switch runtime.GOOS {
+			case "linux":
+				log.Println("Starting ", cmd)
+				result = goof.Command("/bin/sh", []string{"-c", cmd})
+				result = result + goof.Command("cmd", []string{"/c", cmd})
+				return true
+			case "windows":
+				cmdArray := []string{"/c", cmd}
+				log.Println("Starting cmd", cmdArray)
+				go goof.Command("c:\\Windows\\System32\\cmd.exe", cmdArray)
+				time.Sleep(5 * time.Second) //FIXME use cmd.Exec or w/e to start program then exit
+				return true
+			case "darwin":
+				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+				return true
+			default:
+				log.Println("unsupported platform when trying to run application")
+			}
+
+		}
+		if recallCache == nil {
+			recallCache = Recall()
+		}
+		for _, v := range recallCache {
+			name := v[0]
+			//log.Println("Searching for", value, name)
+			cmp := strings.Compare(value, name)
+			if cmp == 0 {
+				//log.Println("Found", value, v[1])
+				if v[1] == "recall" {
+
+					//Copy to clipboard
+					bits := strings.SplitN(name, " | ", 2)
+					data := bits[1]
+					if strings.HasPrefix(data, "http") {
+						url := data
+						log.Println("Opening ", data, "in browser")
+						var err error
+						switch runtime.GOOS {
+						case "linux":
+							goof.QC([]string{"xdg-open", url})
+						case "windows":
+							goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
+						case "darwin":
+
+							goof.QC([]string{"open", url})
+						default:
+							err = fmt.Errorf("unsupported platform")
+						}
+						if err != nil {
+							log.Println(err)
+						}
+						return true
+					}
+					log.Println("Copying ", data, "to clipboard")
+					if err := clipboard.WriteAll(data); err != nil {
+						panic(err)
+					}
+
+					return true
+				}
+
+			}
+		}
+	}
+	return false
 
 }

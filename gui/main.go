@@ -151,34 +151,6 @@ func togglePidFile() {
 	}
 }
 
-func loadEnsureRecallFile(recallFile string) []byte {
-	var raw []byte
-	if goof.Exists(recallFile) {
-
-		raw, _ = ioutil.ReadFile(recallFile)
-	} else {
-		log.Println("Writing default configuration file to", recallFile)
-		raw = []byte(fmt.Sprintf("Recall Config File Location | %v\nReddit | http://reddit.com\nMy password | AbCdEfG", recallFile))
-		ioutil.WriteFile(recallFile, raw, 0600)
-	}
-	return raw
-}
-func Recall() [][]string {
-	recallFile := goof.ConfigFilePath(".menu.recall.txt")
-	log.Println("Reading default configuration file from", recallFile)
-
-	raw := loadEnsureRecallFile(recallFile)
-	lines := strings.Split(string(raw), "\n")
-	out := [][]string{}
-	for _, v := range lines {
-		//name := strings.TrimSuffix(v, ".app")
-		name := v
-		command := "recall"
-		out = append(out, []string{name, command})
-	}
-	return out
-}
-
 func main() {
 	userbytes = []byte("                                                                                          ")
 	//	runtime.LockOSThread()
