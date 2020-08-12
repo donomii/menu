@@ -64,8 +64,6 @@ type UserConfig struct {
 
 var winWidth = 600
 var winHeight = 400
-var ed *GlobalConfig
-var confFile string
 
 // Arrange that main.main runs on main thread.
 func init() {
@@ -73,6 +71,8 @@ func init() {
 	debug.SetGCPercent(-1)
 }
 
+var ed *GlobalConfig
+var confFile string
 var pic []uint8
 var picBytes []byte
 
