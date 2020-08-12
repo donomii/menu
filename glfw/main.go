@@ -229,7 +229,7 @@ func blit(pix []uint8, w, h int) {
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
 
-	gl.Viewport(0, 0, int32(w)*2, int32(h)*2)
+	gl.Viewport(0, 0, int32(w) * screenScale(), int32(h)*screenScale())
 	gl.Ortho(0, 1, 1, 0, 0, -1)
 
 	var texture uint32
