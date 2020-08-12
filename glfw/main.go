@@ -38,12 +38,14 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 	ClearActiveBuffer(ed)
 
 	if mode == "searching" {
-		ActiveBufferInsert(ed, "\n\n")
+		ActiveBufferInsert(ed, "\n ")
 		ActiveBufferInsert(ed, input)
 		ActiveBufferInsert(ed, "\n\n")
 		pred = menu.Predict([]byte(input))
+
 		log.Printf("predictions %+v\n", pred)
 		if len(pred) > 0 {
+			pred = append(pred, "Menu Settings")
 			for _, v := range goof.Seq(selected, len(pred)-1) {
 				if v == selected {
 					ActiveBufferInsert(ed, "\n")
@@ -97,6 +99,15 @@ func handleKeys(window *glfw.Window) {
 				mode = "laoding"
 				update = true
 				go func() {
+					if pred[selected] == "Menu Settings" {
+						recallFile := menu.RecallFilePath()
+
+						fmt.Println("Opening for edit: ", recallFile)
+
+						//goof.QC([]string{"open", recallFile})
+						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
+						go goof.Command("/usr/bin/open", []string{recallFile})
+					}
 					menu.Activate(pred[selected])
 					time.Sleep(1 * time.Second)
 					os.Exit(0)
