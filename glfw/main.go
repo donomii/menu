@@ -159,6 +159,11 @@ func main() {
 	ed.ActiveBuffer.Formatter = form
 	SetFont(ed.ActiveBuffer, 16)
 
+	monitor := glfw.GetPrimaryMonitor()
+	mode := monitor.GetVideoMode()
+	edWidth = mode.Width - int(float64(mode.Width)*0.1)
+	//edHeight = mode.Height
+
 	glfw.WindowHint(glfw.Resizable, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
@@ -229,7 +234,7 @@ func blit(pix []uint8, w, h int) {
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
 
-	gl.Viewport(0, 0, int32(w) * screenScale(), int32(h)*screenScale())
+	gl.Viewport(0, 0, int32(w)*screenScale(), int32(h)*screenScale())
 	gl.Ortho(0, 1, 1, 0, 0, -1)
 
 	var texture uint32

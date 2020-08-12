@@ -396,6 +396,14 @@ func Activate(value string) bool {
 						}
 						return true
 					}
+					if strings.HasPrefix(data, "file") {
+						fmt.Println("Opening for edit: ", data)
+
+						//goof.QC([]string{"open", recallFile})
+						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", data})
+						go goof.Command("/usr/bin/open", []string{data})
+					}
+
 					log.Println("Copying ", data, "to clipboard")
 					if err := clipboard.WriteAll(data); err != nil {
 						panic(err)
