@@ -2,15 +2,13 @@
 package main
 
 import (
-	"github.com/donomii/menu"
 	"bytes"
-	"strings"
+
 	"time"
 
-	"github.com/atotto/clipboard"
-	"github.com/schollz/closestmatch"
+	"github.com/donomii/menu"
 
-	"runtime"
+	"github.com/schollz/closestmatch"
 
 	"github.com/donomii/nuklear-templates"
 
@@ -136,87 +134,6 @@ func comboCallback(newString, oldString []byte) []string {
 	return cm.ClosestN(news, 5)
 }
 
-func activate(index int, value string) bool {
-
-	log.Println("selected for activation:", index, value)
-	appCache := menu.Apps()
-
-	for i, v := range appCache {
-		cmp := strings.Compare(value, v[0])
-
-		if cmp == 0 {
-
-			cmd := appCache[i][1][1:]
-
-			switch runtime.GOOS {
-			case "linux":
-				log.Println("Starting ", cmd)
-				result = goof.Command("/bin/sh", []string{"-c", cmd})
-				result = result + goof.Command("cmd", []string{"/c", cmd})
-				return true
-			case "windows":
-				cmdArray := []string{"/c", cmd}
-				log.Println("Starting cmd", cmdArray)
-				go goof.Command("c:\\Windows\\System32\\cmd.exe", cmdArray)
-				time.Sleep(5 * time.Second) //FIXME use cmd.Exec or w/e to start program then exit
-				return true
-			case "darwin":
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-				return true
-			default:
-				log.Println("unsupported platform when trying to run application")
-			}
-
-		}
-		if recallCache == nil {
-			recallCache = Recall()
-		}
-		for _, v := range recallCache {
-			name := v[0]
-			//log.Println("Searching for", value, name)
-			cmp := strings.Compare(value, name)
-			if cmp == 0 {
-				//log.Println("Found", value, v[1])
-				if v[1] == "recall" {
-
-					//Copy to clipboard
-					bits := strings.SplitN(name, " | ", 2)
-					data := bits[1]
-					if strings.HasPrefix(data, "http") {
-						url := data
-						log.Println("Opening ", data, "in browser")
-						var err error
-						switch runtime.GOOS {
-						case "linux":
-							goof.QC([]string{"xdg-open", url})
-						case "windows":
-							goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
-						case "darwin":
-
-							goof.QC([]string{"open", url})
-						default:
-							err = fmt.Errorf("unsupported platform")
-						}
-						if err != nil {
-							log.Println(err)
-						}
-						return true
-					}
-					log.Println("Copying ", data, "to clipboard")
-					if err := clipboard.WriteAll(data); err != nil {
-						panic(err)
-					}
-
-					return true
-				}
-
-			}
-		}
-	}
-	return false
-
-}
-
 func handleKeys(ctx *nk.Context) {
 	if time.Now().Sub(lastKey).Seconds() < 0.1 {
 		return
@@ -334,7 +251,7 @@ func SpeedSearch(ctx *nk.Context) {
 			if *butts[0].GetDown() > 0 {
 				log.Println("clicked on item:", i)
 
-				if activate(-1, v) {
+				if menu.Activate(v) {
 					os.Remove(pidPath())
 					os.Exit(0)
 				}
@@ -349,8 +266,8 @@ func SpeedSearch(ctx *nk.Context) {
 
 	if clicked > 0 {
 		log.Printf("Opening config here")
-		recallFile := goof.ConfigFilePath(".menu.recall.txt")
-		loadEnsureRecallFile(recallFile) //FIXME use recallCache?
+		recallFile := menu.RecallFilePath()
+
 		//goof.QC([]string{"open", recallFile})
 		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
 		go goof.Command("/usr/bin/open", []string{recallFile})

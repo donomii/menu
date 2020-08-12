@@ -309,8 +309,13 @@ func loadEnsureRecallFile(recallFile string) []byte {
 	}
 	return raw
 }
+
+func RecallFilePath() string {
+	return goof.ConfigFilePath(".menu.recall.txt")
+}
+
 func Recall() [][]string {
-	recallFile := goof.ConfigFilePath(".menu.recall.txt")
+	recallFile := RecallFilePath()
 	log.Println("Reading default configuration file from", recallFile)
 
 	raw := loadEnsureRecallFile(recallFile)
