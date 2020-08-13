@@ -54,6 +54,4 @@ func renderEd(w, h int) {
 		log.Println("Finished render paragraph")
 
 	}
-
-	log.Println("Finish terminal display")
 }
