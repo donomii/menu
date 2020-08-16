@@ -165,14 +165,6 @@ func main() {
 	}
 	defer glfw.Terminate()
 
-	log.Println("Allocate memory")
-	pic = make([]uint8, 3000*3000*4)
-	ed = NewEditor()
-	//Create a text formatter.  This controls the appearance of the text, e.g. colour, size, layout
-	form = glim.NewFormatter()
-	ed.ActiveBuffer.Formatter = form
-	SetFont(ed.ActiveBuffer, 16)
-
 	log.Println("Setup window")
 	monitor := glfw.GetPrimaryMonitor()
 	mode := monitor.GetVideoMode()
@@ -189,6 +181,13 @@ func main() {
 	}
 	log.Println("Make context current")
 	window.MakeContextCurrent()
+	log.Println("Allocate memory")
+	pic = make([]uint8, 3000*3000*4)
+	ed = NewEditor()
+	//Create a text formatter.  This controls the appearance of the text, e.g. colour, size, layout
+	form = glim.NewFormatter()
+	ed.ActiveBuffer.Formatter = form
+	SetFont(ed.ActiveBuffer, 16)
 	log.Println("Set up handlers")
 	handleKeys(window)
 

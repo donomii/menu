@@ -17,7 +17,6 @@ func renderEd(w, h int) {
 			fmt.Println("Recovered in renderEd", r)
 		}
 	}()
-
 	left := 0
 	top := 0
 
@@ -52,6 +51,5 @@ func renderEd(w, h int) {
 			int(mouseX)-left, int(mouseY)-top, pic, displayText,
 			false, true, false)
 		log.Println("Finished render paragraph")
-
 	}
 }
