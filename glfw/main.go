@@ -174,6 +174,7 @@ func main() {
 	glfw.WindowHint(glfw.Resizable, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+	glfw.WindowHint(glfw.Decorated, glfw.False)
 	log.Println("Make window")
 	window, err := glfw.CreateWindow(edWidth, edHeight, "Menu", nil, nil)
 	if err != nil {
