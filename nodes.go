@@ -23,14 +23,21 @@ type Node struct {
 	SubNodes []*Node
 	Command  string
 	Data     string
+	Function func()
 }
 
 func MakeNodeShort(name string, subNodes []*Node) *Node {
-	return &Node{name, subNodes, name, ""}
+	if subNodes == nil {
+		subNodes = []*Node{}
+	}
+	return &Node{name, subNodes, name, "", nil}
 }
 
 func MakeNodeLong(name string, subNodes []*Node, command, data string) *Node {
-	return &Node{name, subNodes, name, data}
+	if subNodes == nil {
+		subNodes = []*Node{}
+	}
+	return &Node{name, subNodes, name, data, nil}
 }
 
 func (n *Node) String() string {
@@ -68,6 +75,10 @@ func NodesToStringArray(ns []*Node) []string {
 	}
 	return out
 
+}
+
+func AppendNode(menu, item *Node) {
+	menu.SubNodes = append(menu.SubNodes, item)
 }
 
 func fileManagerMenu() *Node {
@@ -240,7 +251,7 @@ func AddTextNodesFromCommands(startNode *Node, lines []string) *Node {
 func AddTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
-		newNode := Node{l[0], []*Node{}, l[1], ""}
+		newNode := *MakeNodeLong(l[0], []*Node{}, l[1], "")
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 
@@ -251,7 +262,7 @@ func AddTextNodesFromStrStr(startNode *Node, lines [][]string) *Node {
 func AddTextNodesFromStrStrStr(startNode *Node, lines [][]string) *Node {
 	for _, l := range lines {
 		currentNode := startNode
-		newNode := Node{l[0], []*Node{}, l[1], l[2]}
+		newNode := *MakeNodeLong(l[0], []*Node{}, l[1], l[2])
 		currentNode.SubNodes = append(currentNode.SubNodes, &newNode)
 	}
 
