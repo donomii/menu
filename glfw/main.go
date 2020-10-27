@@ -50,7 +50,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 	ClearActiveBuffer(ed)
 
 	if mode == "searching" {
-		ActiveBufferInsert(ed, "\n ")
+		ActiveBufferInsert(ed, "\n?> ")
 		ActiveBufferInsert(ed, input)
 		ActiveBufferInsert(ed, "\n\n")
 		pred = menu.Predict([]byte(input))
@@ -60,7 +60,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 			pred = append(pred, "Menu Settings")
 			for _, v := range Seq(selected, len(pred)-1) {
 				if v == selected {
-					ActiveBufferInsert(ed, "\n")
+					ActiveBufferInsert(ed, "\n\n")
 					ActiveBufferInsert(ed, "        "+pred[v]+"\n\n")
 				} else {
 					ActiveBufferInsert(ed, "        "+pred[v]+"\n")
