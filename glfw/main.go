@@ -77,7 +77,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 			}
 		}
 	} else {
-		ActiveBufferInsert(ed, "?\n\n")
+		ActiveBufferInsert(ed, "Loading\n\n")
 		ActiveBufferInsert(ed, status)
 	}
 }
@@ -85,7 +85,12 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 func handleKeys(window *glfw.Window) {
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 
-		//fmt.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
+		fmt.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
+
+		if key == 301 {
+			window.Iconify()
+			return
+		}
 		if action > 0 {
 			if key == 256 {
 				os.Exit(0)
@@ -122,7 +127,9 @@ func handleKeys(window *glfw.Window) {
 					}
 					menu.Activate(pred[selected])
 					time.Sleep(1 * time.Second)
-					os.Exit(0)
+					window.Iconify()
+					return
+					//os.Exit(0)
 				}()
 			}
 
