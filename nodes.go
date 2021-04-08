@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ type Node struct {
 	SubNodes []*Node
 	Command  string
 	Data     string
-	Function func()
+	Function func() `json:"-"`
 }
 
 func MakeNodeShort(name string, subNodes []*Node) *Node {
@@ -37,7 +38,7 @@ func MakeNodeLong(name string, subNodes []*Node, command, data string) *Node {
 	if subNodes == nil {
 		subNodes = []*Node{}
 	}
-	return &Node{name, subNodes, name, data, nil}
+	return &Node{name, subNodes, command, data, nil}
 }
 
 func (n *Node) String() string {
@@ -88,8 +89,7 @@ func fileManagerMenu() *Node {
 var appCache [][]string
 
 func AppsMenu() *Node {
-	node := MakeNodeShort("Applications Menu",
-		[]*Node{})
+	node := MakeNodeShort("Applications Menu", []*Node{})
 	AddTextNodesFromStrStr(node, Apps())
 	return node
 }
@@ -107,9 +107,11 @@ func Apps() [][]string {
 
 			for _, v := range lines {
 				if strings.HasSuffix(v, ".lnk") {
+					command := fmt.Sprintf("shell://%v", v)
 					name := strings.TrimSuffix(v, ".lnk")
-					name = strings.TrimPrefix(name, appPath)
-					command := fmt.Sprintf("!%v", v)
+					//name = strings.TrimPrefix(name, appPath)
+					name = filepath.Base(name)
+
 					out = append(out, []string{name, command})
 				}
 			}
@@ -152,7 +154,9 @@ func Apps() [][]string {
 	default:
 		log.Println("unsupported platform when trying to get applications")
 	}
+	//log.Printf("out %v", out)
 
+	//FIXME
 	if appCache == nil {
 		appCache = out
 		return out

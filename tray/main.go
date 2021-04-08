@@ -1,10 +1,16 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"strings"
 	"time"
 
+	"github.com/pkg/browser"
+
+	"github.com/donomii/goof"
 	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
@@ -30,22 +36,75 @@ func main() {
 		now := time.Now()
 		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 	}
-
-	systray.Run(onReady, onExit)
+	for {
+		systray.Run(onReady, onExit)
+	}
 }
 
 func AddSub(m *menu.Node, parent *systray.MenuItem) {
-	fmt.Printf("*****%+v, %v\n", m.SubNodes, m)
+	//fmt.Printf("*****%+v, %v\n", m.SubNodes, m)
 
 	for _, v := range m.SubNodes {
 		if len(v.SubNodes) > 0 {
 			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name, v.Command), v.Command)
 			AddSub(v, p)
 		} else {
-			fmt.Println("Adding submenu item ", v.Name)
-			parent.AddSubMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+			fmt.Printf("Adding submenu item \"%+v\"\n", v)
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
+			go func(v *menu.Node, p *systray.MenuItem) {
+				for {
+					<-p.ClickedCh
+					fmt.Println("Clicked2", v.Name)
+					fmt.Println("Clicked2", v.Command)
+					if strings.HasPrefix(v.Command, "exec://") {
+						cmd := strings.TrimPrefix(v.Command, "exec://")
+						log.Println("Executing", cmd)
+						go goof.QC([]string{cmd})
+					} else if strings.HasPrefix(v.Command, "http") {
+						log.Println("Opening", v.Command, "in browser")
+						browser.OpenURL(v.Command)
+					} else if goof.Exists(v.Command) {
+						log.Println("Opening", v.Command, "as document")
+						goof.QC([]string{"rundll32.exe", "url.dll,FileProtocolHandler", v.Command})
+					} else if strings.HasPrefix(v.Command, "shell://") {
+						cmd := strings.TrimPrefix(v.Command, "shell://")
+						log.Println("Opening", cmd, "as shell command")
+						go goof.QC([]string{"cmd", "/K", cmd})
+					}
+				}
+			}(v, p)
 		}
 	}
+}
+
+func addMenuTree(appMen *systray.MenuItem, apps, m *menu.Node) {
+	AddSub(apps, appMen)
+	for _, v := range m.SubNodes {
+		p := systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+		go func(v *menu.Node) {
+			for {
+				<-p.ClickedCh
+				fmt.Println("Clicked2", v.Name)
+			}
+		}(v)
+		if len(v.SubNodes) > 0 {
+			fmt.Println("Adding submenu ", v.Name)
+			AddSub(v, p)
+		} else {
+			fmt.Println("Adding menu item", v.Name)
+		}
+
+	}
+}
+
+func makeUserMenu() *menu.Node {
+	var usermenu menu.Node
+	b, _ := ioutil.ReadFile("usermenu.json")
+	log.Println("Loaded json:", string(b))
+	err := json.Unmarshal(b, &usermenu)
+	log.Println("unmarshal:", err)
+	log.Printf("reconstructed menu: %+v\n", usermenu)
+	return &usermenu
 }
 
 func onReady() {
@@ -58,21 +117,20 @@ func onReady() {
 	subMenuMiddle.AddSubMenuItem("Panic!", "SubMenu Test (bottom)")
 	var appMen *systray.MenuItem
 	apps := menu.AppsMenu()
-	appMen = systray.AddMenuItem("test", "test")
-	AddSub(apps, appMen)
-	for _, v := range m.SubNodes {
+	js, err := json.MarshalIndent(apps, "", " ")
 
-		if len(v.SubNodes) > 0 {
-			fmt.Println("Adding submenu to top ", v.Name)
-			p := systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
-			AddSub(v, p)
-		} else {
-			fmt.Println("Adding to top ", v.Name)
-			systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
-		}
-		//AddSub()
-	}
-	//fmt.Printf("%+v\n", menu.Apps())
+	fmt.Println(err)
+	fmt.Println("\n\n\nApps tree as javascript", string(js))
+	//fmt.Printf("\n\n\nApps tree %+v\n\n\n", apps)
+	appMen = systray.AddMenuItem("test", "test")
+	addMenuTree(appMen, apps, m)
+
+	var userMen *systray.MenuItem
+	userMen = systray.AddMenuItem("User Menu", "User menu")
+
+	usermenu := makeUserMenu()
+	addMenuTree(userMen, usermenu, m)
+
 	systray.SetTemplateIcon(icon.Data, icon.Data)
 	systray.SetTitle("UMH")
 	systray.SetTooltip("Universaal Menu")

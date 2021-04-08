@@ -101,7 +101,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 
 			//It's a shell command
 
-			cmd := currentNode.Name[1:]
+			cmd := currentNode.Command[1:]
 			result = goof.Command("/bin/sh", []string{"-c", cmd})
 		}
 
