@@ -1,0 +1,38 @@
+{
+ "Name": "User Menu",
+ "SubNodes": [
+  {
+   "Name": "Graphana",
+   "SubNodes": [],
+   "Command": "http://192.168.0.3:3000/",
+   "Data": ""
+  },
+  {
+   "Name": "Jellyfin",
+   "SubNodes": [],
+   "Command": "http://192.168.0.3:8096/",
+   "Data": ""
+  },
+  {
+    "Name": "Gossa",
+    "SubNodes": [],
+    "Command": "http://192.168.0.3:8001/",
+    "Data": ""
+   },
+  {
+   "Name": "Menu Folder",
+   "SubNodes": [],
+   "Command": "d:/portprog-0.7/go/src/github.com/donomii/menu/tray",
+   "Data": ""
+  },
+
+  {
+   "Name": "Edit this menu",
+   "SubNodes": [],
+   "Command": "usermenu.json",
+   "Data": ""
+  }
+],
+ "Command": "User Menu",
+ "Data": ""
+}
