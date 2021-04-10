@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -14,28 +15,43 @@ import (
 	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
+	"github.com/mostlygeek/arp"
 	"github.com/skratchdot/open-golang/open"
 )
 
 func UberMenu() *menu.Node {
 	node := menu.MakeNodeLong("Main menu",
 		[]*menu.Node{
-			menu.AppsMenu(),
-			//menu.HistoryMenu(),
-			//menu.GitMenu(),
-			//gitHistoryMenu(),
-			//fileManagerMenu(),
-			menu.ControlMenu(),
+		//menu.AppsMenu(),
+		//menu.HistoryMenu(),
+		//menu.GitMenu(),
+		//gitHistoryMenu(),
+		//fileManagerMenu(),
+		//menu.ControlMenu(),
 		},
 		"", "")
 	return node
 }
 
+func hello(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "hello\n")
+}
+func webserver() {
+	http.HandleFunc("/hello", hello)
+	http.HandleFunc("/", hello)
+	http.ListenAndServe(":80", nil)
+}
+
 func main() {
+	//go ScanAll()
+	arp.AutoRefresh(1 * time.Second)
+	go webserver()
 	onExit := func() {
-		now := time.Now()
-		ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		//now := time.Now()
+		//ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
+		fmt.Println("done")
 	}
+
 	for {
 		systray.Run(onReady, onExit)
 	}
@@ -46,7 +62,7 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 
 	for _, v := range m.SubNodes {
 		if len(v.SubNodes) > 0 {
-			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name, v.Command), v.Command)
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
 			AddSub(v, p)
 		} else {
 			fmt.Printf("Adding submenu item \"%+v\"\n", v)
@@ -107,22 +123,68 @@ func makeUserMenu() *menu.Node {
 	return &usermenu
 }
 
+func makeNetworkPcMenu(hosts []HostService) *menu.Node {
+	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
+	for _, host := range hosts {
+		h := menu.MakeNodeLong(host.Ip, []*menu.Node{}, host.Ip, "")
+		for _, port := range host.Ports {
+			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[port], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[port], host.Ip, port), ""))
+		}
+		out.SubNodes = append(out.SubNodes, h)
+
+	}
+	return out
+}
+
+var hosts = []HostService{}
+var scanPorts = []int{137, 138, 139, 445, 80, 443, 20, 21, 22, 23, 25, 53, 3000, 8000, 8001, 8080, 8081, 8008}
+
+func ArpScan() {
+	//var hosts = []HostService{}
+
+	keys := []string{}
+	for k, _ := range arp.Table() {
+		keys = append(keys, k)
+	}
+	log.Printf("Scanning %v\n", keys)
+	hosts = append(hosts, scanIps(keys, scanPorts)...)
+
+}
+func ScanC() {
+	//var hosts = []HostService{}
+
+	ips := goof.AllIps()
+
+	classB := map[string]bool{}
+	for _, ip := range ips {
+		hosts = append(hosts, scanNetwork(ip+"/24", scanPorts)...)
+		bits := strings.Split(ip, ".")
+		b := bits[0] + "." + bits[1] + ".0.0"
+		classB[b] = true
+	}
+	/*
+		for ip, _ := range classB {
+			hosts = append(hosts, scanNetwork(ip+"/16")...)
+		}
+	*/
+}
+
 func onReady() {
 	m := UberMenu()
+	hosts = []HostService{}
+	ArpScan()
+	ScanC()
+	netmenu := makeNetworkPcMenu(hosts)
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
-	subMenuTop := systray.AddMenuItem("Test", "SubMenu Test (top)")
-	subMenuMiddle := subMenuTop.AddSubMenuItem("SubMenu - Level 2", "SubMenu Test (middle)")
-	subMenuMiddle.AddSubMenuItem("SubMenu - Level 3", "SubMenu Test (bottom)")
-	subMenuMiddle.AddSubMenuItem("Panic!", "SubMenu Test (bottom)")
 	var appMen *systray.MenuItem
 	apps := menu.AppsMenu()
-	js, err := json.MarshalIndent(apps, "", " ")
+	//	js, err := json.MarshalIndent(apps, "", " ")
 
-	fmt.Println(err)
-	fmt.Println("\n\n\nApps tree as javascript", string(js))
+	//fmt.Println(err)
+	//fmt.Println("\n\n\nApps tree as javascript", string(js))
 	//fmt.Printf("\n\n\nApps tree %+v\n\n\n", apps)
-	appMen = systray.AddMenuItem("test", "test")
+	appMen = systray.AddMenuItem("Applications", "Applications")
 	addMenuTree(appMen, apps, m)
 
 	var userMen *systray.MenuItem
@@ -131,10 +193,12 @@ func onReady() {
 	usermenu := makeUserMenu()
 	addMenuTree(userMen, usermenu, m)
 
-	systray.SetTemplateIcon(icon.Data, icon.Data)
-	systray.SetTitle("UMH")
-	systray.SetTooltip("Universaal Menu")
-	mQuitOrig := systray.AddMenuItem("Quit", "Quit the whole app")
+	var netMen *systray.MenuItem
+	netMen = systray.AddMenuItem("Network Menu", "Network menu")
+
+	addMenuTree(netMen, netmenu, m)
+
+	mQuitOrig := systray.AddMenuItem("Reload", "Reload menu")
 	go func() {
 		<-mQuitOrig.ClickedCh
 		fmt.Println("Requesting quit")
@@ -145,8 +209,8 @@ func onReady() {
 	// We can manipulate the systray in other goroutines
 	go func() {
 		systray.SetTemplateIcon(icon.Data, icon.Data)
-		systray.SetTitle("Awesome App")
-		systray.SetTooltip("Pretty awesome")
+		systray.SetTitle("UMH")
+		systray.SetTooltip("Universal Menu")
 		mChange := systray.AddMenuItem("Change Me", "Change Me")
 		mChecked := systray.AddMenuItem("Unchecked", "Check Me")
 		mEnabled := systray.AddMenuItem("Enabled", "Enabled")
