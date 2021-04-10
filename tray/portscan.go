@@ -126,7 +126,7 @@ func scanNetwork(cidr string, ports []int) (out []HostService) {
 			lock: semaphore.NewWeighted(Ulimit()),
 		}
 		go func(v string) {
-			openPorts := ps.ScanList(1, 9000, 100*time.Millisecond, scanPorts)
+			openPorts := ps.ScanList(1, 9000, 100*time.Millisecond, ports)
 			if len(openPorts) > 0 {
 				out = append(out, HostService{v, openPorts})
 			}
