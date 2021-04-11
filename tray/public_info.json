@@ -1,0 +1,11 @@
+{
+ "Name": "Tablet",
+ "Services": [
+ 	{
+		"Name": "",
+		"Port": 80,
+		"Protocol": "http",
+		"Description": "Standard information service at /public_info"
+	}
+ ]
+}
