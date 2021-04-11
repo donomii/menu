@@ -102,7 +102,7 @@ func Apps() [][]string {
 	case "windows":
 		for _, progDir := range []string{"ProgramData", "AppData"} {
 			appPath := os.Getenv(progDir) + "\\Microsoft\\Windows\\Start Menu\\Programs\\"
-			log.Println("Loading apps from", appPath)
+			//log.Println("Loading apps from", appPath)
 			lines := goof.LslR(appPath)
 
 			for _, v := range lines {
@@ -116,7 +116,7 @@ func Apps() [][]string {
 				}
 			}
 		}
-		log.Println(out)
+		//log.Println(out)
 
 	case "darwin":
 		lines := goof.Ls("/Applications")
