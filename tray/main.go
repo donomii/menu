@@ -19,6 +19,26 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
+type Config struct {
+	Name             string
+	Networks         []string
+	ArpCheckInterval int
+}
+
+var Configuration Config
+
+func LoadConfig() {
+	data, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(data, &Configuration)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Loaded config: %+v", Configuration)
+}
+
 func UberMenu() *menu.Node {
 	node := menu.MakeNodeLong("Main menu",
 		[]*menu.Node{
@@ -34,8 +54,9 @@ func UberMenu() *menu.Node {
 }
 
 func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "hello\n")
+	fmt.Fprintf(w, Configuration.Name)
 }
+
 func webserver() {
 	http.HandleFunc("/hello", hello)
 	http.HandleFunc("/", hello)
@@ -44,7 +65,8 @@ func webserver() {
 
 func main() {
 	//go ScanAll()
-	arp.AutoRefresh(1 * time.Second)
+	LoadConfig()
+	arp.AutoRefresh(time.Duration(Configuration.ArpCheckInterval))
 	go webserver()
 	onExit := func() {
 		//now := time.Now()
@@ -65,7 +87,7 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
 			AddSub(v, p)
 		} else {
-			fmt.Printf("Adding submenu item \"%+v\"\n", v)
+			//fmt.Printf("Adding submenu item \"%+v\"\n", v)
 			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
 			go func(v *menu.Node, p *systray.MenuItem) {
 				for {
@@ -93,10 +115,10 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 	}
 }
 
-func addMenuTree(appMen *systray.MenuItem, apps, m *menu.Node) {
-	AddSub(apps, appMen)
+func addTopLevelMenuItems(m *menu.Node) {
+	//AddSub(apps, appMen)
 	for _, v := range m.SubNodes {
-		p := systray.AddMenuItem(fmt.Sprintf("%v, %v", v.Name, v.Command), v.Command)
+		p := systray.AddMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
 		go func(v *menu.Node) {
 			for {
 				<-p.ClickedCh
@@ -169,34 +191,54 @@ func ScanC() {
 	*/
 }
 
+func ScanConfig() {
+	//var hosts = []HostService{}
+
+	networks := Configuration.Networks
+	log.Println("Scanning user defined networks:", networks)
+	for _, network := range networks {
+		log.Println("Scanning user defined network:", network)
+		hosts = append(hosts, scanNetwork(network, scanPorts)...)
+	}
+
+}
+
 func onReady() {
 	m := UberMenu()
 	hosts = []HostService{}
 	ArpScan()
 	ScanC()
+	ScanConfig()
 	netmenu := makeNetworkPcMenu(hosts)
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
-	var appMen *systray.MenuItem
+
 	apps := menu.AppsMenu()
 	//	js, err := json.MarshalIndent(apps, "", " ")
 
 	//fmt.Println(err)
 	//fmt.Println("\n\n\nApps tree as javascript", string(js))
 	//fmt.Printf("\n\n\nApps tree %+v\n\n\n", apps)
-	appMen = systray.AddMenuItem("Applications", "Applications")
-	addMenuTree(appMen, apps, m)
 
-	var userMen *systray.MenuItem
-	userMen = systray.AddMenuItem("User Menu", "User menu")
+	//var appMen *systray.MenuItem
+	//appMen = systray.AddMenuItem("Applications", "Applications")
+	//addMenuTree(appMen, apps, m)
+	m.SubNodes = append(m.SubNodes, apps)
+
+	//var netMen *systray.MenuItem
+	//netMen = systray.AddMenuItem("Network Menu", "Network menu")
+
+	//addMenuTree(netMen, netmenu, m)
+
+	m.SubNodes = append(m.SubNodes, netmenu)
+
+	//	var userMen *systray.MenuItem
+	//	userMen = systray.AddMenuItem("User Menu", "User menu")
 
 	usermenu := makeUserMenu()
-	addMenuTree(userMen, usermenu, m)
-
-	var netMen *systray.MenuItem
-	netMen = systray.AddMenuItem("Network Menu", "Network menu")
-
-	addMenuTree(netMen, netmenu, m)
+	m.SubNodes = append(m.SubNodes, usermenu)
+	m.SubNodes = append(m.SubNodes, usermenu.SubNodes...)
+	addTopLevelMenuItems(m)
 
 	mQuitOrig := systray.AddMenuItem("Reload", "Reload menu")
 	go func() {
