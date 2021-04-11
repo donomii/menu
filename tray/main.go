@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,8 +28,24 @@ type Config struct {
 
 var Configuration Config
 
+type Service struct {
+	Name        string
+	Ip          string
+	Port        int
+	Protocol    string
+	Description string
+	Global      bool
+}
+
+type InfoStruct struct {
+	Name     string
+	Services []Service
+}
+
+var Info InfoStruct
+
 func LoadConfig() {
-	data, err := ioutil.ReadFile("config.json")
+	data, err := ioutil.ReadFile("config/config.json")
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +54,19 @@ func LoadConfig() {
 		panic(err)
 	}
 	fmt.Printf("Loaded config: %+v", Configuration)
+}
+
+func LoadInfo() {
+	fmt.Printf("Loading info")
+	data, err := ioutil.ReadFile("config/public_info.json")
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(data, &Info)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Loaded info: %+v", Info)
 }
 
 func UberMenu() *menu.Node {
@@ -57,15 +87,22 @@ func hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, Configuration.Name)
 }
 
+func public_info(w http.ResponseWriter, req *http.Request) {
+	out, _ := json.Marshal(Info)
+	fmt.Fprintf(w, string(out))
+}
+
 func webserver() {
 	http.HandleFunc("/hello", hello)
 	http.HandleFunc("/", hello)
+	http.HandleFunc("/public_info", public_info)
 	http.ListenAndServe(":80", nil)
 }
 
 func main() {
 	//go ScanAll()
 	LoadConfig()
+	LoadInfo()
 	arp.AutoRefresh(time.Duration(Configuration.ArpCheckInterval))
 	go webserver()
 	onExit := func() {
@@ -137,25 +174,38 @@ func addTopLevelMenuItems(m *menu.Node) {
 
 func makeUserMenu() *menu.Node {
 	var usermenu menu.Node
-	b, _ := ioutil.ReadFile("usermenu.json")
-	log.Println("Loaded json:", string(b))
-	err := json.Unmarshal(b, &usermenu)
-	log.Println("unmarshal:", err)
-	log.Printf("reconstructed menu: %+v\n", usermenu)
+	b, _ := ioutil.ReadFile("config/usermenu.json")
+	//log.Println("Loaded json:", string(b))
+	json.Unmarshal(b, &usermenu)
+	//log.Println("unmarshal:", err)
+	//log.Printf("reconstructed menu: %+v\n", usermenu)
 	return &usermenu
 }
 
-func makeNetworkPcMenu(hosts []HostService) *menu.Node {
+func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
+	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
 	for _, host := range hosts {
 		h := menu.MakeNodeLong(host.Ip, []*menu.Node{}, host.Ip, "")
 		for _, port := range host.Ports {
 			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[port], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[port], host.Ip, port), ""))
 		}
+		fmt.Printf("Processing services: %+v\n", host.Services)
+		for _, s := range host.Services {
+			ip := host.Ip
+			if s.Ip != "" {
+				ip = s.Ip
+			}
+			if s.Global {
+				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/", s.Protocol, ip, s.Port), ""))
+			} else {
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/", s.Protocol, ip, s.Port), ""))
+			}
+		}
 		out.SubNodes = append(out.SubNodes, h)
 
 	}
-	return out
+	return out, global
 }
 
 var hosts = []HostService{}
@@ -203,13 +253,52 @@ func ScanConfig() {
 
 }
 
+func uniqueifyHosts() {
+	temp := map[string]HostService{}
+	for _, v := range hosts {
+		temp[v.Ip] = v
+	}
+
+	out := HostServiceList{}
+	for _, v := range temp {
+		out = append(out, v)
+	}
+	sort.Sort(out)
+	hosts = out
+}
+func ScanPublicInfo() {
+
+	for i, v := range hosts {
+		url := fmt.Sprintf("http://%v:%v/public_info", v.Ip, 80)
+		fmt.Println("Public info url:", url)
+		resp, err := http.Get(url)
+		if err == nil {
+			fmt.Println("Got response")
+			body, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				fmt.Println("Got body")
+				var s InfoStruct
+				err := json.Unmarshal(body, &s)
+				if err == nil {
+					fmt.Printf("Unmarshalled body %v", s)
+					hosts[i].Services = s.Services
+				}
+			}
+		}
+	}
+
+}
+
 func onReady() {
 	m := UberMenu()
 	hosts = []HostService{}
 	ArpScan()
 	ScanC()
 	ScanConfig()
-	netmenu := makeNetworkPcMenu(hosts)
+
+	uniqueifyHosts()
+	ScanPublicInfo()
+	netmenu, globalmenu := makeNetworkPcMenu(hosts)
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
 
@@ -231,6 +320,7 @@ func onReady() {
 	//addMenuTree(netMen, netmenu, m)
 
 	m.SubNodes = append(m.SubNodes, netmenu)
+	m.SubNodes = append(m.SubNodes, globalmenu)
 
 	//	var userMen *systray.MenuItem
 	//	userMen = systray.AddMenuItem("User Menu", "User menu")

@@ -1,0 +1,28 @@
+{
+ "Name": "Tablet",
+ "Services": [
+ 	{
+		"Name": "Public info",
+		"Port": 80,
+		"Protocol": "http",
+		"Description": "Standard information service at /public_info"
+	},
+	 {
+	   "Name": "Grafana",
+			"Port": 3000,
+			"Ip": "192.168.0.3",
+			"Protocol": "http",
+			"Description": "Graphs",
+			"Global": true
+	  },
+	  {
+	   "Name": "Jellyfin",
+		"Port": 8096,
+		"Ip": "192.168.0.3",
+		"Protocol": "http",
+		"Description": "Media player",
+		"Global": true
+  }
+
+ ]
+}

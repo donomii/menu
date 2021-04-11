@@ -15,6 +15,18 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
+type HostService struct {
+	Ip       string
+	Ports    []int
+	Services []Service
+}
+
+type HostServiceList []HostService
+
+func (a HostServiceList) Len() int           { return len(a) }
+func (a HostServiceList) Less(i, j int) bool { return a[i].Ip < a[j].Ip }
+func (a HostServiceList) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 type PortScanner struct {
 	ip   string
 	lock *semaphore.Weighted
@@ -110,11 +122,6 @@ func Hosts(cidr string) ([]string, error) {
 	}
 }
 
-type HostService struct {
-	Ip    string
-	Ports []int
-}
-
 func scanNetwork(cidr string, ports []int) (out []HostService) {
 	var wg sync.WaitGroup
 	hosts, _ := Hosts(cidr)
@@ -128,7 +135,7 @@ func scanNetwork(cidr string, ports []int) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 1000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts})
+				out = append(out, HostService{v, openPorts, nil})
 			}
 			wg.Done()
 		}(v)
@@ -150,7 +157,7 @@ func scanIps(hosts []string, ports []int) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 1000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts})
+				out = append(out, HostService{v, openPorts, nil})
 			}
 			wg.Done()
 		}(v)
