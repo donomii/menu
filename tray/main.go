@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/pkg/browser"
 
@@ -17,7 +17,6 @@ import (
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 	"github.com/mostlygeek/arp"
-	"github.com/skratchdot/open-golang/open"
 )
 
 type Config struct {
@@ -41,6 +40,8 @@ type InfoStruct struct {
 	Name     string
 	Services []Service
 }
+
+var setStatus func(string)
 
 var Info InfoStruct
 
@@ -72,12 +73,12 @@ func LoadInfo() {
 func UberMenu() *menu.Node {
 	node := menu.MakeNodeLong("Main menu",
 		[]*menu.Node{
-		//menu.AppsMenu(),
-		//menu.HistoryMenu(),
-		//menu.GitMenu(),
-		//gitHistoryMenu(),
-		//fileManagerMenu(),
-		//menu.ControlMenu(),
+			//menu.AppsMenu(),
+			//menu.HistoryMenu(),
+			//menu.GitMenu(),
+			//gitHistoryMenu(),
+			//fileManagerMenu(),
+			//menu.ControlMenu(),
 		},
 		"", "")
 	return node
@@ -103,7 +104,7 @@ func main() {
 	//go ScanAll()
 	LoadConfig()
 	LoadInfo()
-	arp.AutoRefresh(time.Duration(Configuration.ArpCheckInterval))
+	//arp.AutoRefresh(time.Duration(Configuration.ArpCheckInterval))
 	go webserver()
 	onExit := func() {
 		//now := time.Now()
@@ -175,10 +176,7 @@ func addTopLevelMenuItems(m *menu.Node) {
 func makeUserMenu() *menu.Node {
 	var usermenu menu.Node
 	b, _ := ioutil.ReadFile("config/usermenu.json")
-	//log.Println("Loaded json:", string(b))
 	json.Unmarshal(b, &usermenu)
-	//log.Println("unmarshal:", err)
-	//log.Printf("reconstructed menu: %+v\n", usermenu)
 	return &usermenu
 }
 
@@ -212,7 +210,6 @@ var hosts = []HostService{}
 var scanPorts = []int{137, 138, 139, 445, 80, 443, 20, 21, 22, 23, 25, 53, 3000, 8000, 8001, 8080, 8081, 8008}
 
 func ArpScan() {
-	//var hosts = []HostService{}
 
 	keys := []string{}
 	for k, _ := range arp.Table() {
@@ -223,7 +220,6 @@ func ArpScan() {
 
 }
 func ScanC() {
-	//var hosts = []HostService{}
 
 	ips := goof.AllIps()
 
@@ -234,16 +230,9 @@ func ScanC() {
 		b := bits[0] + "." + bits[1] + ".0.0"
 		classB[b] = true
 	}
-	/*
-		for ip, _ := range classB {
-			hosts = append(hosts, scanNetwork(ip+"/16")...)
-		}
-	*/
 }
 
 func ScanConfig() {
-	//var hosts = []HostService{}
-
 	networks := Configuration.Networks
 	log.Println("Scanning user defined networks:", networks)
 	for _, network := range networks {
@@ -303,27 +292,11 @@ func onReady() {
 	systray.AddMenuItem("UMH", "Universal Menu")
 
 	apps := menu.AppsMenu()
-	//	js, err := json.MarshalIndent(apps, "", " ")
 
-	//fmt.Println(err)
-	//fmt.Println("\n\n\nApps tree as javascript", string(js))
-	//fmt.Printf("\n\n\nApps tree %+v\n\n\n", apps)
-
-	//var appMen *systray.MenuItem
-	//appMen = systray.AddMenuItem("Applications", "Applications")
-	//addMenuTree(appMen, apps, m)
 	m.SubNodes = append(m.SubNodes, apps)
-
-	//var netMen *systray.MenuItem
-	//netMen = systray.AddMenuItem("Network Menu", "Network menu")
-
-	//addMenuTree(netMen, netmenu, m)
 
 	m.SubNodes = append(m.SubNodes, netmenu)
 	m.SubNodes = append(m.SubNodes, globalmenu)
-
-	//	var userMen *systray.MenuItem
-	//	userMen = systray.AddMenuItem("User Menu", "User menu")
 
 	usermenu := makeUserMenu()
 	m.SubNodes = append(m.SubNodes, usermenu)
@@ -343,71 +316,36 @@ func onReady() {
 		systray.SetTemplateIcon(icon.Data, icon.Data)
 		systray.SetTitle("UMH")
 		systray.SetTooltip("Universal Menu")
-		mChange := systray.AddMenuItem("Change Me", "Change Me")
-		mChecked := systray.AddMenuItem("Unchecked", "Check Me")
-		mEnabled := systray.AddMenuItem("Enabled", "Enabled")
-		// Sets the icon of a menu item. Only available on Mac.
-		mEnabled.SetTemplateIcon(icon.Data, icon.Data)
+		statusMenuItem := systray.AddMenuItem("-------------", " --------------")
+		setStatus = func(status string) {
+			statusMenuItem.SetTitle(status)
+		}
 
-		systray.AddMenuItem("Ignored", "Ignored")
+		//mChecked := systray.AddMenuItem("Unchecked", "Check Me")
 
-		subMenuTop := systray.AddMenuItem("SubMenu", "SubMenu Test (top)")
-		subMenuMiddle := subMenuTop.AddSubMenuItem("SubMenu - Level 2", "SubMenu Test (middle)")
-		subMenuBottom := subMenuMiddle.AddSubMenuItem("SubMenu - Level 3", "SubMenu Test (bottom)")
-		subMenuBottom2 := subMenuMiddle.AddSubMenuItem("Panic!", "SubMenu Test (bottom)")
-
-		mUrl := systray.AddMenuItem("Open UI", "my home")
 		mQuit := systray.AddMenuItem("退出", "Quit the whole app")
 
 		// Sets the icon of a menu item. Only available on Mac.
 		mQuit.SetIcon(icon.Data)
 
-		systray.AddSeparator()
-		mToggle := systray.AddMenuItem("Toggle", "Toggle the Quit button")
-		shown := true
-		toggle := func() {
-			if shown {
-				subMenuBottom.Check()
-				subMenuBottom2.Hide()
-				mQuitOrig.Hide()
-				mEnabled.Hide()
-				shown = false
-			} else {
-				subMenuBottom.Uncheck()
-				subMenuBottom2.Show()
-				mQuitOrig.Show()
-				mEnabled.Show()
-				shown = true
-			}
-		}
-
 		for {
 			select {
-			case <-mChange.ClickedCh:
-				mChange.SetTitle("I've Changed")
-			case <-mChecked.ClickedCh:
-				if mChecked.Checked() {
-					mChecked.Uncheck()
-					mChecked.SetTitle("Unchecked")
-				} else {
-					mChecked.Check()
-					mChecked.SetTitle("Checked")
-				}
-			case <-mEnabled.ClickedCh:
-				mEnabled.SetTitle("Disabled")
-				mEnabled.Disable()
-			case <-mUrl.ClickedCh:
-				open.Run("https://www.getlantern.org")
-			case <-subMenuBottom2.ClickedCh:
-				panic("panic button pressed")
-			case <-subMenuBottom.ClickedCh:
-				toggle()
-			case <-mToggle.ClickedCh:
-				toggle()
+			case <-statusMenuItem.ClickedCh:
+				statusMenuItem.SetTitle("----------------")
+				statusMenuItem.SetIcon(icon.Data)
+				/*
+					case <-mChecked.ClickedCh:
+						if mChecked.Checked() {
+							mChecked.Uncheck()
+							mChecked.SetTitle("Unchecked")
+						} else {
+							mChecked.Check()
+							mChecked.SetTitle("Checked")
+						}
+				*/
 			case <-mQuit.ClickedCh:
 				systray.Quit()
-				fmt.Println("Quit2 now...")
-				return
+				os.Exit(0)
 			}
 		}
 	}()
