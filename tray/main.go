@@ -104,7 +104,7 @@ func main() {
 	//go ScanAll()
 	LoadConfig()
 	LoadInfo()
-	//arp.AutoRefresh(time.Duration(Configuration.ArpCheckInterval))
+
 	go webserver()
 	onExit := func() {
 		//now := time.Now()

@@ -1,5 +1,5 @@
 {
  "Name": "Xiaomi",
  "Networks": ["192.168.0.0/24", "10.0.0.0/24"],
- "ArpCheckInterval": 5
+ "ArpCheckInterval": 500000000
 }
