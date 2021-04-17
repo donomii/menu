@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/atotto/clipboard"
 
@@ -284,7 +283,7 @@ func dumpTree(n *Node, indent int) {
 
 var recallCache [][]string
 
-func Predict(newString []byte) []string {
+func Predict(newString []byte) ([]string, []string) {
 	news := string(newString)
 	//log.Println("Processing ", news)
 	if appCache == nil {
@@ -309,7 +308,23 @@ func Predict(newString []byte) []string {
 
 	// Create a closestmatch object
 	cm := closestmatch.New(wordsToTest, bagSizes)
-	return cm.ClosestN(news, 5)
+	predictions := cm.ClosestN(news, 5)
+
+	var out, actions []string
+	for _, pred := range predictions {
+		for i, v := range appCache {
+			cmp := strings.Compare(pred, v[0])
+
+			if cmp == 0 {
+
+				cmd := appCache[i][1]
+				out = append(out, pred)
+				actions = append(actions, cmd)
+
+			}
+		}
+	}
+	return out, actions
 }
 
 func loadEnsureRecallFile(recallFile string) []byte {
@@ -348,88 +363,68 @@ func Recall() [][]string {
 func Activate(value string) bool {
 	result := ""
 	log.Println("selected for activation:", value)
-	appCache := Apps()
 
-	for i, v := range appCache {
-		cmp := strings.Compare(value, v[0])
+	if strings.HasPrefix(value, "shell://") {
+		cmd := strings.TrimPrefix(value, "shell://")
 
-		if cmp == 0 {
-
-			cmd := appCache[i][1][1:]
-
-			switch runtime.GOOS {
-			case "linux":
-				log.Println("Starting ", cmd)
-				result = goof.Command("/bin/sh", []string{"-c", cmd})
-				result = result + goof.Command("cmd", []string{"/c", cmd})
-				return true
-			case "windows":
-				cmdArray := []string{"/c", cmd}
-				log.Println("Starting cmd", cmdArray)
-				go goof.Command("c:\\Windows\\System32\\cmd.exe", cmdArray)
-				time.Sleep(5 * time.Second) //FIXME use cmd.Exec or w/e to start program then exit
-				return true
-			case "darwin":
-				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
-				return true
-			default:
-				log.Println("unsupported platform when trying to run application")
-			}
-
-		}
-		if recallCache == nil {
-			recallCache = Recall()
-		}
-		for _, v := range recallCache {
-			name := v[0]
-			//log.Println("Searching for", value, name)
-			cmp := strings.Compare(value, name)
-			if cmp == 0 {
-				//log.Println("Found", value, v[1])
-				if v[1] == "recall" {
-
-					//Copy to clipboard
-					bits := strings.SplitN(name, " | ", 2)
-					data := bits[1]
-					if strings.HasPrefix(data, "http") {
-						url := data
-						log.Println("Opening ", data, "in browser")
-						var err error
-						switch runtime.GOOS {
-						case "linux":
-							goof.QC([]string{"xdg-open", url})
-						case "windows":
-							goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
-						case "darwin":
-
-							goof.QC([]string{"open", url})
-						default:
-							err = fmt.Errorf("unsupported platform")
-						}
-						if err != nil {
-							log.Println(err)
-						}
-						return true
-					}
-					if strings.HasPrefix(data, "file") {
-						fmt.Println("Opening for edit: ", data)
-
-						//goof.QC([]string{"open", recallFile})
-						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", data})
-						go goof.Command("/usr/bin/open", []string{data})
-					}
-
-					log.Println("Copying ", data, "to clipboard")
-					if err := clipboard.WriteAll(data); err != nil {
-						panic(err)
-					}
-
-					return true
-				}
-
-			}
+		switch runtime.GOOS {
+		case "linux":
+			log.Println("Starting ", cmd)
+			result = goof.Command("/bin/sh", []string{"-c", cmd})
+			result = result + goof.Command("cmd", []string{"/c", cmd})
+			return true
+		case "windows":
+			cmdArray := []string{"/c", cmd}
+			log.Println("Starting cmd", cmdArray)
+			go goof.Command("c:\\Windows\\System32\\cmd.exe", cmdArray)
+			//time.Sleep(5 * time.Second) //FIXME use cmd.Exec or w/e to start program then exit
+			return true
+		case "darwin":
+			result = result + goof.Command("/bin/sh", []string{"-c", cmd})
+			return true
+		default:
+			log.Println("unsupported platform when trying to run application")
 		}
 	}
-	return false
 
+	if strings.HasPrefix(value, "http") {
+		url := value
+		log.Println("Opening ", url, "in browser")
+		var err error
+		switch runtime.GOOS {
+		case "linux":
+			goof.QC([]string{"xdg-open", url})
+		case "windows":
+			goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
+		case "darwin":
+
+			goof.QC([]string{"open", url})
+		default:
+			err = fmt.Errorf("unsupported platform")
+		}
+		if err != nil {
+			log.Println(err)
+		}
+		return true
+	}
+
+	if strings.HasPrefix(value, "file://") {
+		data := strings.TrimPrefix(value, "file://")
+		fmt.Println("Opening for edit: ", data)
+
+		//goof.QC([]string{"open", recallFile})
+		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", data})
+		go goof.Command("/usr/bin/open", []string{data})
+		return true
+	}
+
+	if strings.HasPrefix(value, "clipboard://") {
+		data := strings.TrimPrefix(value, "clipboard://")
+		log.Println("Copying ", data, "to clipboard")
+		if err := clipboard.WriteAll(data); err != nil {
+			panic(err)
+		}
+		return true
+	}
+	return false
 }
