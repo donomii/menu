@@ -12,7 +12,6 @@ import (
 
 	"io/ioutil"
 	"log"
-	"os"
 
 	"github.com/donomii/menu"
 	"github.com/go-gl/gl/v2.1/gl"
@@ -26,13 +25,17 @@ var confFile string
 var pic []uint8
 
 var pred []string
+var predAction []string
 var input, status string
 var selected int
 var update bool = true
 var form *glim.FormatParams
-var edWidth = 1000
+var edWidth = 700
 var edHeight = 500
 var mode = "searching"
+var window *glfw.Window
+
+var wantWindow = true
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -53,7 +56,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 		ActiveBufferInsert(ed, "\n?> ")
 		ActiveBufferInsert(ed, input)
 		ActiveBufferInsert(ed, "\n\n")
-		pred = menu.Predict([]byte(input))
+		pred, predAction = menu.Predict([]byte(input))
 
 		log.Printf("predictions %+v\n", pred)
 		if len(pred) > 0 {
@@ -85,15 +88,16 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 func handleKeys(window *glfw.Window) {
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 
-		fmt.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
+		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
 
 		if key == 301 {
-			window.Iconify()
+			hideWindow()
 			return
 		}
 		if action > 0 {
 			if key == 256 {
-				os.Exit(0)
+				//os.Exit(0)
+				hideWindow()
 			}
 
 			if key == 265 {
@@ -112,22 +116,25 @@ func handleKeys(window *glfw.Window) {
 
 			if key == 257 {
 
-				status = "Loading " + pred[selected]
-				mode = "laoding"
+				status = "Loading " + pred[selected] + predAction[selected]
+				mode = "loading"
 				update = true
 				go func() {
 					if pred[selected] == "Menu Settings" {
 						recallFile := menu.RecallFilePath()
 
-						fmt.Println("Opening for edit: ", recallFile)
+						log.Println("Opening for edit: ", recallFile)
 
 						//goof.QC([]string{"open", recallFile})
 						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
 						go goof.Command("/usr/bin/open", []string{recallFile})
 					}
-					menu.Activate(pred[selected])
-					time.Sleep(1 * time.Second)
-					window.Iconify()
+
+					menu.Activate(predAction[selected])
+					hideWindow()
+					//wantWindow = false
+					mode = "searching"
+					input = ""
 					return
 					//os.Exit(0)
 				}()
@@ -155,16 +162,36 @@ func handleKeys(window *glfw.Window) {
 
 	})
 }
-
+func popWindow() {
+	window.Restore()
+	window.Show()
+	wantWindow = true
+}
+func hideWindow() {
+	window.Iconify()
+	window.Hide()
+}
 func main() {
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
 	flag.Parse()
 
+	go WatchKeys()
+
 	if !doLogs {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
+
+	for {
+		if wantWindow {
+			createWindow()
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func createWindow() {
 
 	log.Println("Init glfw")
 	if err := glfw.Init(); err != nil {
@@ -175,18 +202,23 @@ func main() {
 	log.Println("Setup window")
 	monitor := glfw.GetPrimaryMonitor()
 	mode := monitor.GetVideoMode()
-	edWidth = mode.Width - int(float64(mode.Width)*0.1)
-	//edHeight = mode.Height
+	edWidth = mode.Width - int(float64(mode.Width)*0.2)
+	edHeight = mode.Height / 3.0
 
 	glfw.WindowHint(glfw.Resizable, glfw.True)
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.Decorated, glfw.False)
-	log.Println("Make window")
-	window, err := glfw.CreateWindow(edWidth, edHeight, "Menu", nil, nil)
+	//glfw.WindowHint(glfw.GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE)
+	log.Println("Make window", edWidth, "x", edHeight)
+	var err error
+	window, err = glfw.CreateWindow(edWidth, edHeight, "Menu", nil, nil)
+
 	if err != nil {
 		panic(err)
 	}
+	window.SetPos(mode.Width/10.0, mode.Height/4.0)
+	popWindow()
 	log.Println("Make context current")
 	window.MakeContextCurrent()
 	log.Println("Allocate memory")
@@ -235,7 +267,7 @@ func main() {
 	frames := 0
 	UpdateBuffer(ed, input)
 	log.Println("Start rendering")
-	for !window.ShouldClose() {
+	for !window.ShouldClose() && wantWindow {
 		time.Sleep(35 * time.Millisecond)
 		frames++
 		nowTime := glfw.GetTime()
