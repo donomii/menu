@@ -13,3 +13,5 @@
 
 build
 on_exit_*
+glfw/glfw
+tray/tray

@@ -61,6 +61,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 		log.Printf("predictions %+v\n", pred)
 		if len(pred) > 0 {
 			pred = append(pred, "Menu Settings")
+			predAction = append(predAction, "Menu Settings")  //FIXME make this a file:// url
 			for _, v := range Seq(selected, len(pred)-1) {
 				if v == selected {
 					ActiveBufferInsert(ed, "\n\n")
