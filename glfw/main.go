@@ -13,9 +13,9 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/donomii/menu"
+	".."
 	"github.com/go-gl/gl/v2.1/gl"
-	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
 func init() { runtime.LockOSThread() }
@@ -36,6 +36,7 @@ var mode = "searching"
 var window *glfw.Window
 
 var wantWindow = true
+var createWin = true
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -58,10 +59,10 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 		ActiveBufferInsert(ed, "\n\n")
 		pred, predAction = menu.Predict([]byte(input))
 
-		log.Printf("predictions %+v\n", pred)
+		log.Printf("predictions %#v, %#v\n", pred, predAction)
 		if len(pred) > 0 {
 			pred = append(pred, "Menu Settings")
-			predAction = append(predAction, "Menu Settings")  //FIXME make this a file:// url
+			predAction = append(predAction, "Menu Settings") //FIXME make this a file:// url
 			for _, v := range Seq(selected, len(pred)-1) {
 				if v == selected {
 					ActiveBufferInsert(ed, "\n\n")
@@ -91,14 +92,16 @@ func handleKeys(window *glfw.Window) {
 
 		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
 
-		if key == 301 {
+		//F12
+		/*if key == 301 {
 			hideWindow()
 			return
 		}
+		*/
 		if action > 0 {
 			if key == 256 {
 				//os.Exit(0)
-				hideWindow()
+				wantWindow = false
 			}
 
 			if key == 265 {
@@ -132,8 +135,8 @@ func handleKeys(window *glfw.Window) {
 					}
 
 					menu.Activate(predAction[selected])
-					hideWindow()
-					//wantWindow = false
+
+					toggleWindow()
 					mode = "searching"
 					input = ""
 					return
@@ -164,13 +167,29 @@ func handleKeys(window *glfw.Window) {
 	})
 }
 func popWindow() {
-	window.Restore()
+	log.Println("Popping window")
+	update = true
 	window.Show()
-	wantWindow = true
+	window.Restore()
+
 }
 func hideWindow() {
+	log.Println("Hiding window")
 	window.Iconify()
 	window.Hide()
+
+}
+func toggleWindow() {
+	log.Println("Toggling window")
+	wantWindow = !wantWindow
+	if wantWindow {
+		//popWindow()
+		update = true
+		createWin = true
+	} else {
+		createWin = false
+		//hideWindow()
+	}
 }
 func main() {
 	var doLogs bool
@@ -185,7 +204,7 @@ func main() {
 	}
 
 	for {
-		if wantWindow {
+		if createWin {
 			createWindow()
 		}
 		time.Sleep(5 * time.Millisecond)
@@ -268,7 +287,7 @@ func createWindow() {
 	frames := 0
 	UpdateBuffer(ed, input)
 	log.Println("Start rendering")
-	for !window.ShouldClose() && wantWindow {
+	for !window.ShouldClose() && createWin {
 		time.Sleep(35 * time.Millisecond)
 		frames++
 		nowTime := glfw.GetTime()

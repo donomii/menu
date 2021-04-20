@@ -228,7 +228,10 @@ func ProcessPort(gc *GlobalConfig, r io.Reader) {
 }
 
 func LoadFileIfNotLoaded(gc *GlobalConfig, fileName string) {
-	data, _ := ioutil.ReadFile(fileName)
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		log.Println("Could not load", fileName, "because", err)
+	}
 
 	buff := NewBuffer()
 	_, fbuff := FindByFileName(gc, fileName)

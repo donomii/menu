@@ -292,32 +292,40 @@ func Predict(newString []byte) ([]string, []string) {
 	if recallCache == nil {
 		recallCache = Recall()
 	}
+	allEntries := [][]string{}
 	var names []string
+
 	for _, details := range appCache {
 		names = append(names, details[0])
+		allEntries = append(allEntries, details)
 	}
+
 	for _, details := range recallCache {
 		names = append(names, details[0])
+		allEntries = append(allEntries, details)
 	}
 	wordsToTest := names
 
-	//log.Println("Words to test: ", wordsToTest)
+	log.Printf("Words to test: %#v\n", wordsToTest)
 
 	// Choose a set of bag sizes, more is more accurate but slower
-	bagSizes := []int{2}
+	bagSizes := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 
 	// Create a closestmatch object
 	cm := closestmatch.New(wordsToTest, bagSizes)
+	log.Printf("Finding matches for: %#v\n", news)
 	predictions := cm.ClosestN(news, 5)
+
+	log.Printf("Predicted: %#v\n", predictions)
 
 	var out, actions []string
 	for _, pred := range predictions {
-		for i, v := range appCache {
+		for i, v := range allEntries {
 			cmp := strings.Compare(pred, v[0])
 
 			if cmp == 0 {
 
-				cmd := appCache[i][1]
+				cmd := allEntries[i][1]
 				out = append(out, pred)
 				actions = append(actions, cmd)
 
@@ -329,9 +337,13 @@ func Predict(newString []byte) ([]string, []string) {
 
 func loadEnsureRecallFile(recallFile string) []byte {
 	var raw []byte
+	var err error
 	if goof.Exists(recallFile) {
-
-		raw, _ = ioutil.ReadFile(recallFile)
+		log.Println("File exists, reading", recallFile)
+		raw, err = ioutil.ReadFile(recallFile)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		log.Println("Writing default configuration file to", recallFile)
 		raw = []byte(fmt.Sprintf("Recall Config File Location | %v\nReddit | http://reddit.com\nMy password | AbCdEfG", recallFile))
@@ -349,13 +361,18 @@ func Recall() [][]string {
 	log.Println("Reading default configuration file from", recallFile)
 
 	raw := loadEnsureRecallFile(recallFile)
+	log.Printf("Recall file contents: %v\n", string(raw))
 	lines := strings.Split(string(raw), "\n")
 	out := [][]string{}
 	for _, v := range lines {
-		//name := strings.TrimSuffix(v, ".app")
-		name := v
-		command := "recall"
-		out = append(out, []string{name, command})
+		bits := strings.Split(v, "|")
+		name := bits[0]
+		name = strings.TrimSpace(name)
+		command := bits[1]
+		command = strings.TrimSpace(command)
+		entry := []string{name, command}
+		log.Printf("Entry: %v\n", entry)
+		out = append(out, entry)
 	}
 	return out
 }

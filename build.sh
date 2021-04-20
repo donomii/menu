@@ -1,3 +1,4 @@
+export GO111MODULE=off
 mkdir build
 rm build/universal_menu_main.exe build/universal_menu_command_line_toggle build/universal_menu_hotkey_monitor
 go build -ldflags="-s -w" -o build/universal_menu_main.exe

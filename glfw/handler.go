@@ -1,4 +1,4 @@
-// +build windows
+// +build !linux
 
 package main
 
@@ -8,7 +8,8 @@ import "fmt"
 //export HandleKey
 func HandleKey(k C.int) {
 	fmt.Printf("Key id: %v\n", k)
-	if k == 161 {
-		popWindow()
+	if k == 161 || k == 111 {
+		toggleWindow()
+
 	}
 }
