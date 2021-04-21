@@ -10,7 +10,7 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 
-void HandleKey(int);
+bool HandleKey(int);
 int menu_active = 0;
 // This callback will be invoked every time there is a keystroke.
 //
@@ -28,7 +28,9 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
 
     printf("Key: %i\n", keycode);
     
-    HandleKey((int) keycode);
+    if (HandleKey((int) keycode)) {
+        return NULL;
+    }
 
     
     // Set the modified keycode field in the event.

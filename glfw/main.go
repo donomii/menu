@@ -37,7 +37,7 @@ var window *glfw.Window
 
 var wantWindow = true
 var createWin = true
-var preserveWindow = true
+var preserveWindow = false
 
 func Seq(min, max int) []int {
 	size := max - min + 1
