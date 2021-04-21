@@ -37,7 +37,7 @@ var window *glfw.Window
 
 var wantWindow = true
 var createWin = true
-var preserveWindow = false
+var preserveWindow = true
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -170,8 +170,8 @@ func handleKeys(window *glfw.Window) {
 func popWindow() {
 	log.Println("Popping window")
 	update = true
-	window.Show()
 	window.Restore()
+	window.Show()
 
 }
 func hideWindow() {
