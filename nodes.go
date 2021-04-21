@@ -404,7 +404,7 @@ func Activate(value string) bool {
 		}
 	}
 
-	if strings.HasPrefix(value, "http") {
+	if strings.HasPrefix(value, "http://") {
 		url := value
 		log.Println("Opening ", url, "in browser")
 		var err error
@@ -412,7 +412,7 @@ func Activate(value string) bool {
 		case "linux":
 			goof.QC([]string{"xdg-open", url})
 		case "windows":
-			goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
+			go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", url})
 		case "darwin":
 
 			goof.QC([]string{"open", url})
@@ -431,6 +431,7 @@ func Activate(value string) bool {
 
 		//goof.QC([]string{"open", recallFile})
 		go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", data})
+		go goof.QC([]string{"rundll32", "url.dll,FileProtocolHandler"})
 		go goof.Command("/usr/bin/open", []string{data})
 		return true
 	}

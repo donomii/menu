@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	".."
+	"github.com/donomii/menu"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
@@ -37,6 +37,7 @@ var window *glfw.Window
 
 var wantWindow = true
 var createWin = true
+var preserveWindow = true
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -183,12 +184,19 @@ func toggleWindow() {
 	log.Println("Toggling window")
 	wantWindow = !wantWindow
 	if wantWindow {
-		//popWindow()
-		update = true
-		createWin = true
+
+		if preserveWindow {
+			popWindow()
+		} else {
+			update = true
+			createWin = true
+		}
 	} else {
-		createWin = false
-		//hideWindow()
+		if preserveWindow {
+			hideWindow()
+		} else {
+			createWin = false
+		}
 	}
 }
 func main() {

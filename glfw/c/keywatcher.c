@@ -30,16 +30,16 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         case WM_KEYUP:
         case WM_SYSKEYUP:
              p = (PKBDLLHOOKSTRUCT)lParam;
-            printf("%i\n", p->vkCode);
-            HandleKey(p->vkCode);
-            if (fEatKeystroke = (p->vkCode == 20)) {
+           
+            
+            
 		if ( (wParam == WM_KEYUP) || (wParam == WM_SYSKEYUP) ) // Keyup
 			                {
-		    printf("I think the menu is currently %s, so I will %s.\n",  menu_active ? "active": "inactive", menu_active ? "stop it" : "start it");
-	
-
+                                 printf("c: %i\n", p->vkCode);
+                                HandleKey(p->vkCode);
+		  //fEatKeystroke=1;
 	    }
-	    }
+	    
             /*if (fEatKeystroke = (p->vkCode == 0x41)) {     //redirect a to b
             keybd_event('B', 0, 0, 0);
             keybd_event('B', 0, KEYEVENTF_KEYUP, 0);

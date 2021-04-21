@@ -3,12 +3,12 @@
 package main
 
 import "C"
-import "fmt"
+import "log"
 
 //export HandleKey
 func HandleKey(k C.int) {
-	fmt.Printf("Key id: %v\n", k)
-	if k == 161 || k == 111 {
+	log.Printf("Key id: %v\n", k)
+	if k == 123 || k == 111 {
 		toggleWindow()
 
 	}
