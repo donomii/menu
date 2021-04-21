@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"runtime"
+
 	"time"
 
 	"github.com/donomii/glim"
@@ -93,16 +94,19 @@ func handleKeys(window *glfw.Window) {
 
 		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
 
-		//F12
 		/*if key == 301 {
 			hideWindow()
 			return
 		}
 		*/
 		if action > 0 {
+
+			//ESC
 			if key == 256 {
 				//os.Exit(0)
-				wantWindow = false
+				log.Println("Escape pressed")
+				toggleWindow()
+				return
 			}
 
 			if key == 265 {
@@ -120,29 +124,32 @@ func handleKeys(window *glfw.Window) {
 			}
 
 			if key == 257 {
+				if len(pred) > 0 {
+					status = "Loading " + pred[selected] + predAction[selected]
+					mode = "loading"
+					update = true
+					go func() {
+						if pred[selected] == "Menu Settings" {
+							recallFile := menu.RecallFilePath()
 
-				status = "Loading " + pred[selected] + predAction[selected]
-				mode = "loading"
-				update = true
-				go func() {
-					if pred[selected] == "Menu Settings" {
-						recallFile := menu.RecallFilePath()
+							log.Println("Opening for edit: ", recallFile)
 
-						log.Println("Opening for edit: ", recallFile)
+							//goof.QC([]string{"open", recallFile})
+							go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
+							go goof.Command("/usr/bin/open", []string{recallFile})
+						}
 
-						//goof.QC([]string{"open", recallFile})
-						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
-						go goof.Command("/usr/bin/open", []string{recallFile})
-					}
+						menu.Activate(predAction[selected])
 
-					menu.Activate(predAction[selected])
-
+						toggleWindow()
+						mode = "searching"
+						input = ""
+						return
+						//os.Exit(0)
+					}()
+				} else {
 					toggleWindow()
-					mode = "searching"
-					input = ""
-					return
-					//os.Exit(0)
-				}()
+				}
 			}
 
 			if key == 259 {
@@ -200,6 +207,9 @@ func toggleWindow() {
 	}
 }
 func main() {
+	if runtime.GOOS == "darwin" {
+		preserveWindow = false
+	}
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
 	flag.Parse()
