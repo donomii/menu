@@ -35,7 +35,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             
 		if ( (wParam == WM_KEYUP) || (wParam == WM_SYSKEYUP) ) // Keyup
 			                {
-                                 printf("c: %i\n", p->vkCode);
+                                 //printf("c: %i\n", p->vkCode);
                                 fEatKeystroke = HandleKey(p->vkCode);
 		  //fEatKeystroke=1;
 	    }

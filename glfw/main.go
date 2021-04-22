@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
 
 	"runtime"
 
@@ -138,15 +140,31 @@ func handleKeys(window *glfw.Window) {
 							go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
 							go goof.Command("/usr/bin/open", []string{recallFile})
 						}
+						value := predAction[selected]
+						if strings.HasPrefix(value, "internal://") {
+							cmd := strings.TrimPrefix(value, "internal://")
 
+							switch cmd {
+							case "exit":
+								os.Exit(0)
+							case "reload":
+								menu.RecallCache = nil
+							default:
+								log.Println("unsupported command when trying to run internal://")
+							}
+						}
 						menu.Activate(predAction[selected])
 
 						toggleWindow()
-						mode = "searching"
-						input = ""
+
 						return
 						//os.Exit(0)
 					}()
+					//FIXME some kind of transition here?
+					mode = "searching"
+					input = ""
+					status = ""
+					update = true
 				} else {
 					toggleWindow()
 				}

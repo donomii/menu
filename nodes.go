@@ -281,7 +281,7 @@ func dumpTree(n *Node, indent int) {
 
 }
 
-var recallCache [][]string
+var RecallCache [][]string
 
 func Predict(newString []byte) ([]string, []string) {
 	news := string(newString)
@@ -289,8 +289,8 @@ func Predict(newString []byte) ([]string, []string) {
 	if appCache == nil {
 		appCache = Apps()
 	}
-	if recallCache == nil {
-		recallCache = Recall()
+	if RecallCache == nil {
+		RecallCache = Recall()
 	}
 	allEntries := [][]string{}
 	var names []string
@@ -300,7 +300,7 @@ func Predict(newString []byte) ([]string, []string) {
 		allEntries = append(allEntries, details)
 	}
 
-	for _, details := range recallCache {
+	for _, details := range RecallCache {
 		names = append(names, details[0])
 		allEntries = append(allEntries, details)
 	}
@@ -444,5 +444,6 @@ func Activate(value string) bool {
 		}
 		return true
 	}
+
 	return false
 }
