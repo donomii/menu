@@ -10,7 +10,7 @@ import (
 
 //export HandleKey
 func HandleKey(k C.int) bool {
-	log.Printf("Key id: %v\n", k)
+	log.Printf("Global key id: %v\n", k)
 	if (runtime.GOOS != "darwin" && k == 123) || // F12 on windows
 		k == 111 || //F12 on mac
 		k == 177 { //Spotlight key on mac

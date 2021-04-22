@@ -16,7 +16,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/donomii/menu"
+	".."
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
@@ -56,7 +56,9 @@ func Seq(min, max int) []int {
 
 func UpdateBuffer(ed *GlobalConfig, input string) {
 	ClearActiveBuffer(ed)
-
+	if selected > len(pred)-1 {
+		selected = 0
+	}
 	if mode == "searching" {
 		ActiveBufferInsert(ed, "\n?> ")
 		ActiveBufferInsert(ed, input)
@@ -130,8 +132,8 @@ func handleKeys(window *glfw.Window) {
 					status = "Loading " + pred[selected] + predAction[selected]
 					mode = "loading"
 					update = true
-					go func() {
-						if pred[selected] == "Menu Settings" {
+					go func(thread_selected int) {
+						if pred[thread_selected] == "Menu Settings" {
 							recallFile := menu.RecallFilePath()
 
 							log.Println("Opening for edit: ", recallFile)
@@ -140,7 +142,7 @@ func handleKeys(window *glfw.Window) {
 							go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
 							go goof.Command("/usr/bin/open", []string{recallFile})
 						}
-						value := predAction[selected]
+						value := predAction[thread_selected]
 						if strings.HasPrefix(value, "internal://") {
 							cmd := strings.TrimPrefix(value, "internal://")
 
@@ -153,18 +155,19 @@ func handleKeys(window *glfw.Window) {
 								log.Println("unsupported command when trying to run internal://")
 							}
 						}
-						menu.Activate(predAction[selected])
+						menu.Activate(predAction[thread_selected])
 
 						toggleWindow()
 
 						return
 						//os.Exit(0)
-					}()
+					}(selected)
 					//FIXME some kind of transition here?
 					mode = "searching"
 					input = ""
 					status = ""
 					update = true
+					selected = 0
 				} else {
 					toggleWindow()
 				}
@@ -275,7 +278,7 @@ func createWindow() {
 	}
 	window.SetPos(mode.Width/10.0, mode.Height/4.0)
 	popWindow()
-	log.Println("Make context current")
+	log.Println("Make glfw window context current")
 	window.MakeContextCurrent()
 	log.Println("Allocate memory")
 	pic = make([]uint8, 3000*3000*4)
@@ -284,7 +287,7 @@ func createWindow() {
 	form = glim.NewFormatter()
 	ed.ActiveBuffer.Formatter = form
 	SetFont(ed.ActiveBuffer, 16)
-	log.Println("Set up handlers")
+	log.Println("Set up key handlers")
 	handleKeys(window)
 
 	//This should be SetFramebufferSizeCallback, but that doesn't work, so...
@@ -341,6 +344,7 @@ func createWindow() {
 		}
 		glfw.PollEvents()
 	}
+	log.Println("Normal glfw shutdown")
 }
 
 func blit(pix []uint8, w, h int) {
