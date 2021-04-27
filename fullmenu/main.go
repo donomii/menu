@@ -108,7 +108,7 @@ func configFile() *menu.Node {
 func MailSummaries() [][]string {
 	username := goof.CatFile("username")
 	password := goof.CatFile("password")
-	lines := menu.GetSummaries(50, username, password)
+	lines := menu.GetSummaries(4, username, password)
 	out := [][]string{}
 	for _, v := range lines {
 		command := ""

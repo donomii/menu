@@ -57,6 +57,7 @@ func GetSummaries(maxItems int, username, password string) [][]string {
 	}
 	//log.Println("Flags for INBOX:", mbox.Flags)
 
+	log.Println("Last", max, "messages:")
 	// Get the last 4 messages
 	from := uint32(1)
 	to := mbox.Messages
@@ -74,7 +75,6 @@ func GetSummaries(maxItems int, username, password string) [][]string {
 		done <- c.Fetch(seqset, []imap.FetchItem{imap.FetchUid, imap.FetchRFC822Text, imap.FetchBody, imap.FetchEnvelope, imap.FetchBodyStructure, imap.FetchFlags}, messages)
 	}()
 
-	log.Println("Last 4 messages:")
 	for msg := range messages {
 		data := fmt.Sprintf("%+v, %+v", msg.Envelope, msg.BodyStructure)
 		for _, v := range msg.Body {
