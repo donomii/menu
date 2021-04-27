@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"runtime"
 
+	"github.com/donomii/menu"
+
 	"github.com/BurntSushi/toml"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -47,22 +49,22 @@ var app *tview.Application
 var workerChan chan string
 var currentNodeLock sync.Mutex
 
-var currentNode *Node
+var currentNode *menu.Node
 
-func updateCurrentNode(n *Node) {
+func updateCurrentNode(n *menu.Node) {
 	currentNodeLock.Lock()
 	currentNode = n
 	currentNodeLock.Unlock()
 }
 
-func getCurrentNode() *Node {
+func getCurrentNode() *menu.Node {
 	currentNodeLock.Lock()
 	n := currentNode
 	currentNodeLock.Unlock()
 	return n
 }
 
-var currentThing []*Node
+var currentThing []*menu.Node
 
 type Menu []string
 
@@ -73,20 +75,12 @@ type Node struct {
 	Data     string
 }
 
-func makeNodeShort(name string, subNodes []*Node) *Node {
-	return &Node{name, subNodes, name, ""}
-}
-
-func makeNodeLong(name string, subNodes []*Node, command, data string) *Node {
-	return &Node{name, subNodes, name, data}
-}
-
-func UberMenu() *Node {
-	node := makeNodeLong("Main menu",
-		[]*Node{
-			appsMenu(),
-			historyMenu(),
-			gitMenu(),
+func UberMenu() *menu.Node {
+	node := menu.MakeNodeLong("Main menu",
+		[]*menu.Node{
+			menu.AppsMenu(),
+			menu.HistoryMenu(),
+			//menu.GitMenu(),
 			//gitHistoryMenu(),
 			//fileManagerMenu(),
 			//controlMenu(),
@@ -107,13 +101,12 @@ var menuData = `
 
 var myMenu Menu
 
-func configFile() *Node {
-	return makeNodeShort("Edit Config", []*Node{})
+func configFile() *menu.Node {
+	return menu.MakeNodeShort("Edit Config", []*menu.Node{})
 }
 
-/*
 func MailSummaries() [][]string {
-	lines := getSummaries(50)
+	lines := menu.GetSummaries(50)
 	out := [][]string{}
 	for _, v := range lines {
 		command := ""
@@ -123,7 +116,6 @@ func MailSummaries() [][]string {
 	}
 	return out
 }
-*/
 
 /*
 func AddAppNodes(n *Node) *Node {
@@ -131,15 +123,15 @@ func AddAppNodes(n *Node) *Node {
 }
 */
 
-func gitHistoryMenu() *Node {
-	node := makeNodeShort("previous git commands", []*Node{})
-	addTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
+func gitHistoryMenu() *menu.Node {
+	node := menu.MakeNodeShort("previous git commands", []*menu.Node{})
+	menu.AddTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
 	return node
 }
 
-func gitMenu() *Node {
-	node := makeNodeShort("git menu", []*Node{})
-	addTextNodesFromString(node, git())
+func gitMenu() *menu.Node {
+	node := menu.MakeNodeShort("git menu", []*menu.Node{})
+	menu.AddTextNodesFromString(node, git())
 	return node
 }
 func git() string {
@@ -247,16 +239,16 @@ func main() {
 		}
 	}()
 
-	updateCurrentNode(makeNodeShort("Loading", []*Node{}))
+	updateCurrentNode(menu.MakeNodeShort("Loading", []*menu.Node{}))
 	go func() {
 		//time.Sleep(1 * time.Second)
 		updateCurrentNode(UberMenu())
 	}()
 
-	//currentNode = addTextNodesFromStrStrStr(currentNode, MailSummaries())
+	currentNode = menu.AddTextNodesFromStrStrStr(currentNode, MailSummaries())
 
 	//currentNode =
-	currentThing = []*Node{getCurrentNode()}
+	currentThing = []*menu.Node{getCurrentNode()}
 	//result := ""
 
 	//Nuklear

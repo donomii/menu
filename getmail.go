@@ -5,12 +5,14 @@ import (
 
 	"fmt"
 
-	"github.com/donomii/goof"
+	//"github.com/donomii/goof"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 )
 
-func getSummaries(maxItems int) [][]string {
+//username := goof.CatFile("username")
+//password := goof.CatFile("password")
+func GetSummaries(maxItems int, username, password string) [][]string {
 	max := uint32(maxItems)
 	var out [][]string
 	log.Println("Connecting to server...")
@@ -24,8 +26,7 @@ func getSummaries(maxItems int) [][]string {
 
 	// Don't forget to logout
 	defer c.Logout()
-	username := goof.CatFile("username")
-	password := goof.CatFile("password")
+
 	// Login
 	if err := c.Login(string(username), string(password)); err != nil {
 		log.Fatal(err)
@@ -62,6 +63,7 @@ func getSummaries(maxItems int) [][]string {
 	if mbox.Messages >= max {
 		// We're using unsigned integers here, only substract if the result is > 0
 		from = mbox.Messages - max - 1
+		//from = mbox.Messages - 3
 	}
 	seqset := new(imap.SeqSet)
 	seqset.AddRange(from, to)

@@ -39,12 +39,11 @@ func getSummaries(maxItems int) [][]string {
 		done <- c.List("", "*", mailboxes)
 	}()
 
-	/*
-		log.Println("Mailboxes:")
-		for m := range mailboxes {
-			log.Println("* " + m.Name)
-		}
-	*/
+	log.Println("Mailboxes:")
+	for m := range mailboxes {
+		log.Println("* " + m.Name)
+	}
+
 	if err := <-done; err != nil {
 		log.Fatal(err)
 	}
@@ -54,14 +53,15 @@ func getSummaries(maxItems int) [][]string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//log.Println("Flags for INBOX:", mbox.Flags)
+	log.Println("Flags for INBOX:", mbox.Flags)
 
 	// Get the last 4 messages
 	from := uint32(1)
 	to := mbox.Messages
 	if mbox.Messages >= max {
 		// We're using unsigned integers here, only substract if the result is > 0
-		from = mbox.Messages - max - 1
+		//from = mbox.Messages - max - 1
+		from = mbox.Messages - 3
 	}
 	seqset := new(imap.SeqSet)
 	seqset.AddRange(from, to)
@@ -75,8 +75,8 @@ func getSummaries(maxItems int) [][]string {
 	log.Println("Last 4 messages:")
 	for msg := range messages {
 		data := fmt.Sprintf("%+v, %+v", msg.Envelope, msg.BodyStructure)
-		for _, v := range msg.Body {
-			//fmt.Println("Body: '", k, "'", v)
+		for k, v := range msg.Body {
+			fmt.Println("Body: '", k, "'", v)
 			data = fmt.Sprintf("%v", v)
 		}
 		//fmt.Println(data)

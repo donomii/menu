@@ -3,6 +3,9 @@ package main
 
 import (
 	"strings"
+
+	"github.com/donomii/menu"
+
 	//"time"
 
 	//"unsafe"
@@ -46,20 +49,20 @@ func defaultMenu(ctx *nk.Context) {
 	}
 
 	if 0 < nk.NkButtonLabel(ctx, "Run command") {
-		cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+		cmd := strings.Join(menu.NodesToStringArray(currentThing[1:]), " ")
 		result = goof.Command("cmd", []string{"/c", cmd})
 		result = result + goof.Command("/bin/sh", []string{"-c", cmd})
 	}
 
 	if 0 < nk.NkButtonLabel(ctx, "Run command interactively") {
-		goof.QCI(NodesToStringArray(currentThing[1:]))
+		goof.QCI(menu.NodesToStringArray(currentThing[1:]))
 
 	}
 	if 0 < nk.NkButtonLabel(ctx, "Change directory") {
-		path := strings.Join(NodesToStringArray(currentThing[1:]), "/")
+		path := strings.Join(menu.NodesToStringArray(currentThing[1:]), "/")
 		os.Chdir(path)
-		updateCurrentNode(makeStartNode())
-		currentThing = []*Node{getCurrentNode()}
+		updateCurrentNode(menu.MakeStartNode())
+		currentThing = []*menu.Node{getCurrentNode()}
 	}
 
 	if len(currentThing) > 1 {
@@ -75,7 +78,7 @@ func defaultMenu(ctx *nk.Context) {
 	}
 	if 0 < nk.NkButtonLabel(ctx, "Exit") {
 
-		fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
+		fmt.Println(strings.Join(menu.NodesToStringArray(currentThing), " ") + "\n")
 		if ui {
 			app.Stop()
 		}
@@ -206,7 +209,7 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " > "), nk.TextLeft)
+			nk.NkLabel(ctx, strings.Join(menu.NodesToStringArray(currentThing), " > "), nk.TextLeft)
 			if 0 < nk.NkButtonLabel(ctx, "Undo") {
 				if len(currentThing) > 1 {
 					updateCurrentNode(currentThing[len(currentThing)-2])
@@ -228,15 +231,15 @@ func gfxMain(win *glfw.Window, ctx *nk.Context, state *State) {
 
 		nk.NkLayoutRowDynamic(ctx, 20, 3)
 		{
-			nk.NkLabel(ctx, strings.Join(NodesToStringArray(currentThing), " "), nk.TextLeft)
+			nk.NkLabel(ctx, strings.Join(menu.NodesToStringArray(currentThing), " "), nk.TextLeft)
 			if 0 < nk.NkButtonLabel(ctx, "Run") {
-				cmd := strings.Join(NodesToStringArray(currentThing[1:]), " ")
+				cmd := strings.Join(menu.NodesToStringArray(currentThing[1:]), " ")
 				result = goof.Command("cmd", []string{"/c", cmd})
 				result = result + goof.Command("/bin/sh", []string{"-c", cmd})
 			}
 
 			if 0 < nk.NkButtonLabel(ctx, "Run interactive") {
-				goof.QCI(NodesToStringArray(currentThing[1:]))
+				goof.QCI(menu.NodesToStringArray(currentThing[1:]))
 
 			}
 		}
@@ -305,8 +308,8 @@ func ButtonBox(ctx *nk.Context) {
 
 						if result != "" {
 							log.Println("Ran command, got result", result)
-							execNode := makeNodeShort("Exec", []*Node{})
-							addTextNodesFromString(execNode, result)
+							execNode := menu.MakeNodeShort("Exec", []*menu.Node{})
+							menu.AddTextNodesFromString(execNode, result)
 							updateCurrentNode(execNode)
 						}
 
@@ -348,7 +351,7 @@ func ButtonBox(ctx *nk.Context) {
 						for _, v := range results {
 							//nk.NkLabel(ctx, v, nk.WindowBorder)
 							if nk.NkButtonLabel(ctx, v) > 0 {
-								n := makeNodeShort(v, []*Node{})
+								n := menu.MakeNodeShort(v, []*menu.Node{})
 								currentThing = append(currentThing, n)
 
 							}
@@ -371,7 +374,7 @@ func ButtonBox(ctx *nk.Context) {
 								}
 								//nk.NkLabel(ctx, v, nk.WindowBorder)
 								if nk.NkButtonLabel(ctx, label) > 0 {
-									n := makeNodeShort(label, []*Node{})
+									n := menu.MakeNodeShort(label, []*menu.Node{})
 									currentThing = append(currentThing, n)
 
 								}
@@ -481,7 +484,7 @@ func QuickFileEditor(ctx *nk.Context) {
 				//gl.DeleteTextures(testim)
 				//t, err := nktemplates.LoadImageFile(fmt.Sprintf("%v/progress%05v.png", output, fnum), width, height)
 				//t := nktemplates.LoadImageData(globalPic, width, height)
-				mapTex, _ = nktemplates.RawTexture(glim.Uint8ToBytes(pic,nil), int32(width), int32(height), mapTex)
+				mapTex, _ = nktemplates.RawTexture(glim.Uint8ToBytes(pic, nil), int32(width), int32(height), mapTex)
 				var err error = nil
 				if err == nil {
 					testim := nk.NkImageId(int32(mapTex.Handle))

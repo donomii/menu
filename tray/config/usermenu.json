@@ -22,14 +22,14 @@
   {
    "Name": "Menu Folder",
    "SubNodes": [],
-   "Command": "d:/portprog-0.7/go/src/github.com/donomii/menu/tray",
+   "Command": "file://.",
    "Data": ""
   },
 
   {
    "Name": "Edit this menu",
    "SubNodes": [],
-   "Command": "usermenu.json",
+   "Command": "file://config/usermenu.json",
    "Data": ""
   }
 ],
