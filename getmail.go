@@ -12,8 +12,13 @@ import (
 
 //username := goof.CatFile("username")
 //password := goof.CatFile("password")
-func GetSummaries(maxItems int, username, password string) [][]string {
-	max := uint32(maxItems)
+func GetSummaries(maxItems int, username, password []byte) [][]string {
+	var max uint32
+	if maxItems < 0 {
+		max = 0
+	} else {
+		max = uint32(maxItems)
+	}
 	var out [][]string
 	log.Println("Connecting to server...")
 
@@ -54,9 +59,13 @@ func GetSummaries(maxItems int, username, password string) [][]string {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//if requested num messages is -1, retrieve all messages
+	if maxItems < 0 {
+		max = mbox.Messages
+	}
 	//log.Println("Flags for INBOX:", mbox.Flags)
 
-	log.Println("Last", max, "messages:")
 	// Get the last 4 messages
 	from := uint32(1)
 	to := mbox.Messages
