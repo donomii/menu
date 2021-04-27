@@ -40,12 +40,11 @@ func GetSummaries(maxItems int, username, password string) [][]string {
 		done <- c.List("", "*", mailboxes)
 	}()
 
-	/*
-		log.Println("Mailboxes:")
-		for m := range mailboxes {
-			log.Println("* " + m.Name)
-		}
-	*/
+	log.Println("Mailboxes:")
+	for m := range mailboxes {
+		log.Println("* " + m.Name)
+	}
+
 	if err := <-done; err != nil {
 		log.Fatal(err)
 	}
