@@ -25,6 +25,12 @@
    "Command": "d:/portprog-0.7/go/src/github.com/donomii/menu/tray",
    "Data": ""
   },
+  {
+   "Name": "Run at Startup",
+   "SubNodes": [],
+   "Command": "shell://powershell \"$s=(New-Object -COM WScript.Shell).CreateShortcut('%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\tray.lnk');$s.TargetPath='%cd%\\tray.exe';$s.Save()\"",
+   "Data": ""
+  },
 
   {
    "Name": "Edit this menu",

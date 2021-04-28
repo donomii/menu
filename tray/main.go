@@ -101,6 +101,8 @@ func webserver() {
 }
 
 func main() {
+	baseDir := goof.ExecutablePath()
+	os.Chdir(baseDir)
 	//go ScanAll()
 	LoadConfig()
 	LoadInfo()
