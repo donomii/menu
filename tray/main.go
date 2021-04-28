@@ -10,8 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pkg/browser"
-
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
@@ -134,21 +132,7 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 					<-p.ClickedCh
 					fmt.Println("Clicked2", v.Name)
 					fmt.Println("Clicked2", v.Command)
-					if strings.HasPrefix(v.Command, "exec://") {
-						cmd := strings.TrimPrefix(v.Command, "exec://")
-						log.Println("Executing", cmd)
-						go goof.QC([]string{cmd})
-					} else if strings.HasPrefix(v.Command, "http") {
-						log.Println("Opening", v.Command, "in browser")
-						browser.OpenURL(v.Command)
-					} else if goof.Exists(v.Command) {
-						log.Println("Opening", v.Command, "as document")
-						goof.QC([]string{"rundll32.exe", "url.dll,FileProtocolHandler", v.Command})
-					} else if strings.HasPrefix(v.Command, "shell://") {
-						cmd := strings.TrimPrefix(v.Command, "shell://")
-						log.Println("Opening", cmd, "as shell command")
-						go goof.QC([]string{"cmd", "/K", cmd})
-					}
+					menu.Activate(v.Command)
 				}
 			}(v, p)
 		}
@@ -162,7 +146,8 @@ func addTopLevelMenuItems(m *menu.Node) {
 		go func(v *menu.Node) {
 			for {
 				<-p.ClickedCh
-				fmt.Println("Clicked2", v.Name)
+				fmt.Println("Clicked top level", v.Name)
+				menu.Activate(v.Command)
 			}
 		}(v)
 		if len(v.SubNodes) > 0 {

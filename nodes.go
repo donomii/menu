@@ -381,6 +381,12 @@ func Activate(value string) bool {
 	result := ""
 	log.Println("selected for activation:", value)
 
+	if strings.HasPrefix(value, "exec://") {
+		cmd := strings.TrimPrefix(value, "exec://")
+		log.Println("Executing", cmd)
+		go goof.QC([]string{cmd})
+	}
+
 	if strings.HasPrefix(value, "shell://") {
 		cmd := strings.TrimPrefix(value, "shell://")
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/donomii/menu"
+
 	//"text/scanner"
 
 	"fmt"
@@ -16,7 +18,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThing []*Node, result string) {
+func doui(cN *menu.Node, cT []*menu.Node, extraText string) (currentNode *menu.Node, currentThing []*menu.Node, result string) {
 	currentNode = cN
 	currentThing = cT
 
@@ -51,7 +53,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 		return p
 	}
 	header := newPrimitive("")
-	header.SetText(strings.Join(NodesToStringArray(currentThing), " "))
+	header.SetText(strings.Join(menu.NodesToStringArray(currentThing), " "))
 	header.SetTextColor(tcell.ColorRed)
 
 	list := tview.NewList()
@@ -60,7 +62,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 		list.AddItem("Run", "Run your text", 'R', func() {
 			//app.Stop()
 			//app.Suspend(func() {
-			result = goof.Command("/bin/sh", []string{"-c", strings.Join(NodesToStringArray(currentThing[1:]), " ")})
+			result = goof.Command("/bin/sh", []string{"-c", strings.Join(menu.NodesToStringArray(currentThing[1:]), " ")})
 			//})
 			textView.SetText(result)
 			//app.Run()
@@ -70,7 +72,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 			//app.Stop()
 			app.Suspend(func() {
 				//result = doQC(NodesToStringArray(currentThing[1:]))
-				goof.QCI(NodesToStringArray(currentThing[1:]))
+				goof.QCI(menu.NodesToStringArray(currentThing[1:]))
 			})
 			textView.SetText(result)
 			//app.Run()
@@ -80,14 +82,14 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 			if len(currentThing) > 1 {
 				currentNode = currentThing[len(currentThing)-2]
 				currentThing = currentThing[:len(currentThing)-1]
-				header.SetText(strings.Join(NodesToStringArray(currentThing), " "))
+				header.SetText(strings.Join(menu.NodesToStringArray(currentThing), " "))
 				list.Clear()
 				populateList(list)
 			}
 		})
 
 		list.AddItem("Quit", "exit", 'Q', func() {
-			fmt.Println(strings.Join(NodesToStringArray(currentThing), " ") + "\n")
+			fmt.Println(strings.Join(menu.NodesToStringArray(currentThing), " ") + "\n")
 			app.Stop()
 			os.Exit(0)
 		})
@@ -119,8 +121,8 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 		}
 
 		if result != "" {
-			execNode := makeNodeShort("Exec", []*Node{})
-			addTextNodesFromString(execNode, result)
+			execNode := menu.MakeNodeShort("Exec", []*menu.Node{})
+			menu.AddTextNodesFromString(execNode, result)
 			currentNode = execNode
 		}
 		for i, vv := range currentNode.SubNodes {
@@ -133,7 +135,7 @@ func doui(cN *Node, cT []*Node, extraText string) (currentNode *Node, currentThi
 				}
 				currentNode = v
 
-				header.SetText("\n" + strings.Join(NodesToStringArray(currentThing[1:]), " "))
+				header.SetText("\n" + strings.Join(menu.NodesToStringArray(currentThing[1:]), " "))
 				list.Clear()
 				populateList(list)
 				//app.Stop()

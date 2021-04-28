@@ -5,13 +5,20 @@ import (
 
 	"fmt"
 
-	"github.com/donomii/goof"
+	//"github.com/donomii/goof"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 )
 
-func getSummaries(maxItems int) [][]string {
-	max := uint32(maxItems)
+//username := goof.CatFile("username")
+//password := goof.CatFile("password")
+func GetSummaries(maxItems int, username, password []byte) [][]string {
+	var max uint32
+	if maxItems < 0 {
+		max = 0
+	} else {
+		max = uint32(maxItems)
+	}
 	var out [][]string
 	log.Println("Connecting to server...")
 
@@ -24,8 +31,7 @@ func getSummaries(maxItems int) [][]string {
 
 	// Don't forget to logout
 	defer c.Logout()
-	username := goof.CatFile("username")
-	password := goof.CatFile("password")
+
 	// Login
 	if err := c.Login(string(username), string(password)); err != nil {
 		log.Fatal(err)
@@ -39,12 +45,11 @@ func getSummaries(maxItems int) [][]string {
 		done <- c.List("", "*", mailboxes)
 	}()
 
-	/*
-		log.Println("Mailboxes:")
-		for m := range mailboxes {
-			log.Println("* " + m.Name)
-		}
-	*/
+	log.Println("Mailboxes:")
+	for m := range mailboxes {
+		log.Println("* " + m.Name)
+	}
+
 	if err := <-done; err != nil {
 		log.Fatal(err)
 	}
@@ -54,6 +59,11 @@ func getSummaries(maxItems int) [][]string {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//if requested num messages is -1, retrieve all messages
+	if maxItems < 0 {
+		max = mbox.Messages
+	}
 	//log.Println("Flags for INBOX:", mbox.Flags)
 
 	// Get the last 4 messages
@@ -62,6 +72,7 @@ func getSummaries(maxItems int) [][]string {
 	if mbox.Messages >= max {
 		// We're using unsigned integers here, only substract if the result is > 0
 		from = mbox.Messages - max - 1
+		//from = mbox.Messages - 3
 	}
 	seqset := new(imap.SeqSet)
 	seqset.AddRange(from, to)
@@ -72,7 +83,6 @@ func getSummaries(maxItems int) [][]string {
 		done <- c.Fetch(seqset, []imap.FetchItem{imap.FetchUid, imap.FetchRFC822Text, imap.FetchBody, imap.FetchEnvelope, imap.FetchBodyStructure, imap.FetchFlags}, messages)
 	}()
 
-	log.Println("Last 4 messages:")
 	for msg := range messages {
 		data := fmt.Sprintf("%+v, %+v", msg.Envelope, msg.BodyStructure)
 		for _, v := range msg.Body {
