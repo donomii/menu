@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
+	"github.com/emersion/go-autostart"
 
 	"github.com/donomii/goof"
 	"github.com/mattn/go-shellwords"
@@ -380,6 +381,20 @@ func Recall() [][]string {
 func Activate(value string) bool {
 	result := ""
 	log.Println("selected for activation:", value)
+
+	if strings.HasPrefix(value, "internal://") {
+		cmd := strings.TrimPrefix(value, "internal://")
+		log.Println("Executing internal", cmd)
+		switch cmd {
+		case "RunAtStartup":
+			app := &autostart.App{
+				Name:        "umhtray",
+				DisplayName: "UMH Tray",
+				Exec:        []string{"tray.exe"},
+			}
+			app.Enable()
+		}
+	}
 
 	if strings.HasPrefix(value, "exec://") {
 		cmd := strings.TrimPrefix(value, "exec://")
