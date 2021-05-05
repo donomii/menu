@@ -279,7 +279,7 @@ func onReady() {
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
 
-	apps := menu.AppsMenu()
+	apps := menu.TieredAppsMenu()
 
 	m.SubNodes = append(m.SubNodes, apps)
 
