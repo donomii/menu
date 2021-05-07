@@ -1,7 +1,13 @@
 {
  "Name": "User Menu",
  "SubNodes": [
-  {
+   {
+    "Name": "Task Manager",
+    "SubNodes": [],
+    "Command": "shell://taskmgr.exe",
+    "Data": ""
+   },
+   {
    "Name": "Graphana",
    "SubNodes": [],
    "Command": "http://192.168.0.3:3000/",
