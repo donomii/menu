@@ -76,7 +76,7 @@ var confFile string
 var pic []uint8
 var picBytes []byte
 
-var pred []string
+var pred, cmd []string
 var input string
 var selected int
 var update bool
@@ -94,7 +94,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 
 	ActiveBufferInsert(ed, input)
 	ActiveBufferInsert(ed, "\n\n")
-	pred = menu.Predict([]byte(input))
+	pred, cmd = menu.Predict([]byte(input)) //FIXME
 	fmt.Printf("predictions %+v\n", pred)
 	for _, v := range seq(selected, len(pred)-1) {
 		if v == selected {
@@ -177,7 +177,7 @@ func main() {
 			}
 
 			if key == 257 {
-				menu.Activate(pred[selected])
+				menu.Activate(cmd[selected])
 				time.Sleep(1 * time.Second)
 				os.Exit(0)
 			}
