@@ -4,22 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/donomii/goof"
-	//"github.com/donomii/menu"
-	".."
+	"github.com/donomii/menu"
+
+	//".."
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
-	"github.com/mostlygeek/arp"
 )
 
 type Config struct {
+	HttpPort         uint
 	Name             string
+	MaxUploadSize    uint
 	Networks         []string
 	ArpCheckInterval int
 }
@@ -33,6 +31,7 @@ type Service struct {
 	Protocol    string
 	Description string
 	Global      bool
+	Path        string
 }
 
 type InfoStruct struct {
@@ -81,22 +80,6 @@ func UberMenu() *menu.Node {
 		},
 		"", "")
 	return node
-}
-
-func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, Configuration.Name)
-}
-
-func public_info(w http.ResponseWriter, req *http.Request) {
-	out, _ := json.Marshal(Info)
-	fmt.Fprintf(w, string(out))
-}
-
-func webserver() {
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/", hello)
-	http.HandleFunc("/public_info", public_info)
-	http.ListenAndServe(":80", nil)
 }
 
 func main() {
@@ -172,7 +155,7 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
 	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
 	for _, host := range hosts {
-		h := menu.MakeNodeLong(host.Ip, []*menu.Node{}, host.Ip, "")
+		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, host.Ip, "")
 		for _, port := range host.Ports {
 			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[port], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[port], host.Ip, port), ""))
 		}
@@ -183,87 +166,15 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 				ip = s.Ip
 			}
 			if s.Global {
-				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/", s.Protocol, ip, s.Port), ""))
+				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
 			} else {
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/", s.Protocol, ip, s.Port), ""))
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
 			}
 		}
 		out.SubNodes = append(out.SubNodes, h)
 
 	}
 	return out, global
-}
-
-var hosts = []HostService{}
-var scanPorts = []int{137, 138, 139, 445, 80, 443, 20, 21, 22, 23, 25, 53, 3000, 8000, 8001, 8080, 8081, 8008}
-
-func ArpScan() {
-
-	keys := []string{}
-	for k, _ := range arp.Table() {
-		keys = append(keys, k)
-	}
-	log.Printf("Scanning %v\n", keys)
-	hosts = append(hosts, scanIps(keys, scanPorts)...)
-
-}
-func ScanC() {
-
-	ips := goof.AllIps()
-
-	classB := map[string]bool{}
-	for _, ip := range ips {
-		hosts = append(hosts, scanNetwork(ip+"/24", scanPorts)...)
-		bits := strings.Split(ip, ".")
-		b := bits[0] + "." + bits[1] + ".0.0"
-		classB[b] = true
-	}
-}
-
-func ScanConfig() {
-	networks := Configuration.Networks
-	log.Println("Scanning user defined networks:", networks)
-	for _, network := range networks {
-		log.Println("Scanning user defined network:", network)
-		hosts = append(hosts, scanNetwork(network, scanPorts)...)
-	}
-
-}
-
-func uniqueifyHosts() {
-	temp := map[string]HostService{}
-	for _, v := range hosts {
-		temp[v.Ip] = v
-	}
-
-	out := HostServiceList{}
-	for _, v := range temp {
-		out = append(out, v)
-	}
-	sort.Sort(out)
-	hosts = out
-}
-func ScanPublicInfo() {
-
-	for i, v := range hosts {
-		url := fmt.Sprintf("http://%v:%v/public_info", v.Ip, 80)
-		fmt.Println("Public info url:", url)
-		resp, err := http.Get(url)
-		if err == nil {
-			fmt.Println("Got response")
-			body, err := ioutil.ReadAll(resp.Body)
-			if err == nil {
-				fmt.Println("Got body")
-				var s InfoStruct
-				err := json.Unmarshal(body, &s)
-				if err == nil {
-					fmt.Printf("Unmarshalled body %v", s)
-					hosts[i].Services = s.Services
-				}
-			}
-		}
-	}
-
 }
 
 func onReady() {

@@ -80,7 +80,7 @@ func DialogScreen(win fyne.Window, a fyne.App, repos [][]string) fyne.CanvasObje
 
 	co := []fyne.CanvasObject{entry}
 	co = append(co, buttons...)
-	dialogs := widget.NewGroup("Repositories", co...)
+	dialogs := widget.NewGroup("Search", co...)
 	windows := widget.NewVBox(dialogs)
 	entry.Focused()
 	return fyne.NewContainerWithLayout(layout.NewAdaptiveGridLayout(2), windows)
@@ -104,7 +104,7 @@ func newEnterEntry() *enterEntry {
 
 func (e *enterEntry) KeyDown(key *fyne.KeyEvent) {
 	fmt.Print(e.Text)
-	pred := menu.Predict([]byte(e.Text))
+	pred, _ := menu.Predict([]byte(e.Text))
 	for i, v := range buttons {
 		if i < len(pred) {
 			v.(*widget.Button).SetText(pred[i])

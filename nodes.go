@@ -94,6 +94,68 @@ func AppsMenu() *Node {
 	return node
 }
 
+func TieredAppsMenu() *Node {
+	node := MakeNodeShort("Applications Menu", []*Node{})
+	cwd, _ := os.Getwd()
+	switch runtime.GOOS {
+	//case "linux":
+	case "windows":
+		for _, progDir := range []string{"ProgramData", "AppData"} {
+			appPath := os.Getenv(progDir) + "\\Microsoft\\Windows\\Start Menu\\Programs\\"
+			os.Chdir(appPath)
+			Dir2Menu(node)
+		}
+	case "darwin":
+
+		for _, progDir := range []string{"~/Applications", "/Applications"} {
+			os.Chdir(progDir)
+			Dir2Menu(node)
+		}
+	}
+	os.Chdir(cwd)
+	return node
+}
+
+func Dir2Menu(parent *Node) *Node {
+
+	lines := goof.Ls(".")
+
+	for _, v := range lines {
+		if goof.IsDir(v) {
+			node := MakeNodeShort(v, []*Node{})
+			cwd, _ := os.Getwd()
+			os.Chdir(v)
+			node = Dir2Menu(node)
+			AppendNode(parent, node)
+			os.Chdir(cwd)
+		} else {
+			switch runtime.GOOS {
+			//case "linux":
+			case "windows":
+				if strings.HasSuffix(v, ".lnk") {
+					cwd, _ := os.Getwd()
+
+					command := fmt.Sprintf("shell://"+cwd+"\\%v", v)
+					name := strings.TrimSuffix(v, ".lnk")
+					//name = strings.TrimPrefix(name, appPath)
+					name = filepath.Base(name)
+					node := Node{Name: name, Command: command}
+					AppendNode(parent, &node)
+				}
+			case "darwin":
+				if strings.HasSuffix(v, ".lnk") {
+					cwd, _ := os.Getwd()
+					name := strings.TrimSuffix(v, ".app")
+					command := fmt.Sprintf("shell://open \"%v/%v\"", cwd, v)
+					node := Node{Name: name, Command: command}
+					AppendNode(parent, &node)
+				}
+			}
+		}
+	}
+	return parent
+}
+
 func Apps() [][]string {
 
 	out := [][]string{}
