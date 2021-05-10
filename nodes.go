@@ -387,10 +387,12 @@ func Activate(value string) bool {
 		log.Println("Executing internal", cmd)
 		switch cmd {
 		case "RunAtStartup":
+			log.Println("Configuring tray to run at startup/login")
+			cwd, _ := os.Getwd()
 			app := &autostart.App{
 				Name:        "umhtray",
 				DisplayName: "UMH Tray",
-				Exec:        []string{"tray.exe"},
+				Exec:        []string{cwd + "/" + "tray.exe"},
 			}
 			app.Enable()
 		}
