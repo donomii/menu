@@ -489,7 +489,7 @@ func Activate(value string) bool {
 		}
 	}
 
-	if strings.HasPrefix(value, "http://") {
+	if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
 		url := value
 		log.Println("Opening ", url, "in browser")
 		var err error

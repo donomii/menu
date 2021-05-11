@@ -16,3 +16,11 @@ on_exit_*
 glfw/glfw
 tray/tray
 glfw/log
+traymenu
+tray/.DS_Store
+.DS_Store
+fullmenu/fullmenu
+fullmenu/password
+fullmenu/username
+log
+traymenu.tar.gz

@@ -10,9 +10,9 @@ import (
 
 	"time"
 
+	".."
 	"github.com/donomii/glim"
 	"github.com/donomii/goof"
-	"github.com/donomii/menu"
 
 	"io/ioutil"
 	"log"
