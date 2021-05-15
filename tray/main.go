@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 
 	"github.com/donomii/goof"
 	//"github.com/donomii/menu"
@@ -190,8 +191,12 @@ func onReady() {
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
 
-	apps := menu.TieredAppsMenu()
-
+	var apps *menu.Node
+	if runtime.GOOS == "darwin" {
+		apps = menu.AppsMenu()
+	} else {
+		apps = menu.TieredAppsMenu()
+	}
 	m.SubNodes = append(m.SubNodes, apps)
 
 	m.SubNodes = append(m.SubNodes, netmenu)
