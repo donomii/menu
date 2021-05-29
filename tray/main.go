@@ -2,18 +2,23 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
 
+	"github.com/donomii/menu"
+
 	"github.com/donomii/goof"
 	//"github.com/donomii/menu"
 
-	".."
+	//".."
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )
+
+var noScan bool
 
 type Config struct {
 	HttpPort         uint
@@ -53,11 +58,11 @@ func LoadConfig() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Loaded config: %+v", Configuration)
+	fmt.Printf("Loaded config: %+v\n", Configuration)
 }
 
 func LoadInfo() {
-	fmt.Printf("Loading info")
+	fmt.Println("Loading info")
 	data, err := ioutil.ReadFile("config/public_info.json")
 	if err != nil {
 		panic(err)
@@ -66,7 +71,7 @@ func LoadInfo() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Loaded info: %+v", Info)
+	fmt.Printf("Loaded info: %+v\n", Info)
 }
 
 func UberMenu() *menu.Node {
@@ -84,6 +89,8 @@ func UberMenu() *menu.Node {
 }
 
 func main() {
+	flag.BoolVar(&noScan, "no-scan", false, "Don't do network scan at start")
+	flag.Parse()
 	baseDir := goof.ExecutablePath()
 	os.Chdir(baseDir)
 	//go ScanAll()
@@ -181,13 +188,19 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 func onReady() {
 	m := UberMenu()
 	hosts = []HostService{}
-	ArpScan()
-	ScanC()
-	ScanConfig()
+	if !noScan {
 
-	uniqueifyHosts()
-	ScanPublicInfo()
+		ArpScan()
+		ScanC()
+		ScanConfig()
+
+		uniqueifyHosts()
+		ScanPublicInfo()
+	}
+	fmt.Println("NoScan:", noScan)
+
 	netmenu, globalmenu := makeNetworkPcMenu(hosts)
+
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
 
