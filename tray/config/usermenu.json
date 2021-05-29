@@ -8,6 +8,18 @@
     "Data": ""
    },
    {
+    "Name": "Activity Manager",
+    "SubNodes": [],
+    "Command": "shell:///Applications/ActivityManager",
+    "Data": ""
+   },
+   {
+    "Name": "Start Page",
+    "SubNodes": [],
+    "Command": "http://localhost:1080/webfiles/",
+    "Data": ""
+   },
+   {
    "Name": "Graphana",
    "SubNodes": [],
    "Command": "http://192.168.0.3:3000/",
