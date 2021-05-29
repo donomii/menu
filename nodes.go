@@ -185,7 +185,7 @@ func Apps() [][]string {
 
 		for _, v := range lines {
 			name := strings.TrimSuffix(v, ".app")
-			command := fmt.Sprintf("!open \"/Applications/%v\"", v)
+			command := fmt.Sprintf("shell://open \"/Applications/%v\"", v)
 			out = append(out, []string{name, command})
 		}
 
@@ -193,7 +193,7 @@ func Apps() [][]string {
 
 		for _, v := range lines {
 			name := strings.TrimSuffix(v, ".app")
-			command := fmt.Sprintf("!open \"/Applications/Utilities/%v\"", v)
+			command := fmt.Sprintf("shell://open \"/Applications/Utilities/%v\"", v)
 			out = append(out, []string{name, command})
 		}
 
