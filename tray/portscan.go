@@ -1,39 +1,31 @@
 package main
 
 import (
-	"sort"
-	"net/http"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
-	"github.com/donomii/goof"
-	"github.com/mostlygeek/arp"
-
-)
-//https://gist.github.com/kotakanbe/d3059af990252ba89a82
-
-import (
-	"context"
-	"fmt"
-
 	"net"
-
+	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/donomii/goof"
+	"github.com/mostlygeek/arp"
 	"golang.org/x/sync/semaphore"
 )
 
+//https://gist.github.com/kotakanbe/d3059af990252ba89a82
+
 type HostService struct {
-
 	Ip       string
-	Ports    []int
+	Ports    []uint
 	Services []Service
-		Name string
+	Name     string
 }
-
-
 
 type HostServiceList []HostService
 
@@ -51,9 +43,8 @@ func Ulimit() int64 {
 	return 1000
 }
 
-
 var hosts = []HostService{}
-var scanPorts = []int{137, 138, 139, 445, 80, 443, 20, 21, 22, 23, 25, 53, 3000, 8000, 8001, 8080, 8081, 8008}
+var scanPorts = []uint{1, 5, 7, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 23, 25, 53, 37, 42, 67, 68, 69, 70, 80, 88, 110, 119, 123, 137, 138, 139, 143, 177, 220, 445, 443, 514, 995, 989, 990, 1080, 3000, 3001, 3389, 8000, 8001, 8080, 8081, 8008}
 
 func ArpScan() {
 
@@ -125,8 +116,7 @@ func ScanPublicInfo() {
 
 }
 
-
-func ScanPort(ip string, port int, timeout time.Duration) bool {
+func ScanPort(ip string, port uint, timeout time.Duration) bool {
 	target := fmt.Sprintf("%s:%d", ip, port)
 	conn, err := net.DialTimeout("tcp", target, timeout)
 
@@ -146,14 +136,14 @@ func ScanPort(ip string, port int, timeout time.Duration) bool {
 	return true
 }
 
-func (ps *PortScanner) Start(f, l int, timeout time.Duration) {
+func (ps *PortScanner) Start(f, l uint, timeout time.Duration) {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
 	for port := f; port <= l; port++ {
 		ps.lock.Acquire(context.TODO(), 1)
 		wg.Add(1)
-		go func(port int) {
+		go func(port uint) {
 			defer ps.lock.Release(1)
 			defer wg.Done()
 			ScanPort(ps.ip, port, timeout)
@@ -161,14 +151,14 @@ func (ps *PortScanner) Start(f, l int, timeout time.Duration) {
 	}
 }
 
-func (ps *PortScanner) ScanList(f, l int, timeout time.Duration, ports []int) (out []int) {
+func (ps *PortScanner) ScanList(f, l int, timeout time.Duration, ports []uint) (out []uint) {
 	wg := sync.WaitGroup{}
 	defer wg.Wait()
 
 	for _, port := range ports {
 		ps.lock.Acquire(context.TODO(), 1)
 		wg.Add(1)
-		go func(port int) {
+		go func(port uint) {
 			defer ps.lock.Release(1)
 			defer wg.Done()
 			if ScanPort(ps.ip, port, timeout) {
@@ -211,7 +201,7 @@ func Hosts(cidr string) ([]string, error) {
 	}
 }
 
-func scanNetwork(cidr string, ports []int) (out []HostService) {
+func scanNetwork(cidr string, ports []uint) (out []HostService) {
 	var wg sync.WaitGroup
 	hosts, _ := Hosts(cidr)
 	for _, v := range hosts {
@@ -233,7 +223,7 @@ func scanNetwork(cidr string, ports []int) (out []HostService) {
 	return out
 }
 
-func scanIps(hosts []string, ports []int) (out []HostService) {
+func scanIps(hosts []string, ports []uint) (out []HostService) {
 	var wg sync.WaitGroup
 
 	for _, v := range hosts {
@@ -246,7 +236,7 @@ func scanIps(hosts []string, ports []int) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 1000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts, nil,""})
+				out = append(out, HostService{v, openPorts, nil, ""})
 			}
 			wg.Done()
 		}(v)

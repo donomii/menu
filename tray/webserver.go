@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -27,14 +28,23 @@ func public_info(w http.ResponseWriter, req *http.Request) {
 }
 
 func webserver() {
-	http.HandleFunc("/upload", uploadHandler)
-	http.HandleFunc("/hello", hello)
+
+	server1 := http.NewServeMux()
+	server1.HandleFunc("/upload", uploadHandler)
+	server1.HandleFunc("/hello", hello)
+	server1.HandleFunc("/public_info", public_info)
+
+	log.Println("Server started on: :", Configuration.HttpPort)
+	go http.ListenAndServe(fmt.Sprintf(":%v", Configuration.HttpPort), server1)
+
+	server2 := http.NewServeMux()
 	fs := http.FileServer(http.FS(webapp))
-	http.Handle("/", fs)
-	//http.HandleFunc("/", landingPage)
-	http.HandleFunc("/public_info", public_info)
-	http.HandleFunc("/webfiles/js/index.js", fillTemplate)
-	http.ListenAndServe(fmt.Sprintf(":%v", Configuration.HttpPort), nil)
+	server2.Handle("/", fs)
+
+	server2.HandleFunc("/webfiles/js/index.js", fillTemplate)
+
+	log.Println("Server started on: 0.0.0.0:", Configuration.StartPagePort)
+	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%v", Configuration.StartPagePort), server2)
 }
 
 func landingTemplate() string {

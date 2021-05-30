@@ -22,6 +22,7 @@ var noScan bool
 
 type Config struct {
 	HttpPort         uint
+	StartPagePort    uint
 	Name             string
 	MaxUploadSize    uint
 	Networks         []string
@@ -95,6 +96,8 @@ func main() {
 	os.Chdir(baseDir)
 	//go ScanAll()
 	LoadConfig()
+	scanPorts = append(scanPorts, Configuration.HttpPort)
+	scanPorts = append(scanPorts, Configuration.StartPagePort)
 	LoadInfo()
 
 	go webserver()
@@ -165,7 +168,7 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	for _, host := range hosts {
 		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, host.Ip, "")
 		for _, port := range host.Ports {
-			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[port], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[port], host.Ip, port), ""))
+			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[int(port)], host.Ip, port), ""))
 		}
 		fmt.Printf("Processing services: %+v\n", host.Services)
 		for _, s := range host.Services {

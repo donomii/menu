@@ -1,0 +1,21 @@
+{
+ "Name": "M1",
+ "Services": [
+ 	{
+		"Name": "Public info",
+		"Port": 1080,
+		"Protocol": "http",
+    "Path": "/public_info",
+		"Description": "Standard information service at /public_info"
+	},
+  	{
+ 		"Name": "Upload",
+ 		"Port": 1080,
+ 		"Protocol": "http",
+    "Path": "/upload",
+ 		"Description": "Send files to this computer"
+ 	}
+
+
+ ]
+}

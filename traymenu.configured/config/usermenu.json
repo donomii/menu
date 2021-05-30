@@ -1,19 +1,7 @@
 {
  "Name": "User Menu",
  "SubNodes": [
-   {
-    "Name": "Start Page",
-    "SubNodes": [],
-    "Command": "http://localhost:16001/webfiles/",
-    "Data": ""
-   },
-{
-    "Name": "Launcher",
-    "SubNodes": [],
-    "Command": "shell://./universal_menu_main.exe",
-    "Data": ""
-   },
-   {
+      {
     "Name": "Task Manager",
     "SubNodes": [],
     "Command": "shell://taskmgr.exe",
@@ -25,7 +13,12 @@
     "Command": "shell:///Applications/ActivityManager",
     "Data": ""
    },
-
+   {
+    "Name": "Start Page",
+    "SubNodes": [],
+    "Command": "http://localhost:1080/webfiles/",
+    "Data": ""
+   },
    {
    "Name": "Graphana",
    "SubNodes": [],

@@ -1,6 +1,7 @@
 {
  "Name": "Unused",
-"HttpPort": 1080,
+"HttpPort": 16002,
+"StartPagePort": 16001,
 "MaxUploadSize": 100000000,
  "Networks": ["192.168.0.0/24", "192.168.1.0/24", "10.0.0.0/24"],
  "ArpCheckInterval": 500000000
