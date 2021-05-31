@@ -10,38 +10,38 @@
 {
     "Name": "Launcher",
     "SubNodes": [],
-    "Command": "shell://./universal_menu_main.exe",
+    "Command": "exec://universal_menu_main.exe",
     "Data": ""
    },
    {
     "Name": "Task Manager",
     "SubNodes": [],
-    "Command": "shell://taskmgr.exe",
+    "Command": "exec://taskmgr.exe",
     "Data": ""
    },
    {
     "Name": "Activity Manager",
     "SubNodes": [],
-    "Command": "shell:///Applications/ActivityManager",
+    "Command": "exec:///Applications/ActivityManager",
     "Data": ""
    },
 
    {
    "Name": "Graphana",
    "SubNodes": [],
-   "Command": "http://192.168.0.3:3000/",
+   "Command": "http://192.168.178.43:3000/",
    "Data": ""
   },
   {
    "Name": "Jellyfin",
    "SubNodes": [],
-   "Command": "http://192.168.0.3:8096/",
+   "Command": "http://192.168.178.43:8096/",
    "Data": ""
   },
   {
     "Name": "Gossa",
     "SubNodes": [],
-    "Command": "http://192.168.0.3:8001/",
+    "Command": "http://192.168.178.43:8001/",
     "Data": ""
    },
   {

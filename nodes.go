@@ -463,7 +463,10 @@ func Activate(value string) bool {
 	if strings.HasPrefix(value, "exec://") {
 		cmd := strings.TrimPrefix(value, "exec://")
 		log.Println("Executing", cmd)
-		go goof.QC([]string{cmd})
+		cmdline, err := shellwords.Parse(cmd)
+		cmdline[0], err = filepath.Abs(cmdline[0])
+		log.Println(err)
+		go goof.QC(cmdline)
 	}
 
 	if strings.HasPrefix(value, "shell://") {
