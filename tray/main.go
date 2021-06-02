@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strings"
 
 	//"github.com/donomii/menu"
 
@@ -188,6 +189,35 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	return out, global
 }
 
+func trim(s string) string {
+	out := strings.TrimSpace(s)
+	return out
+}
+
+func listWifi() []string {
+	//Macosx
+	wifi_str := trim(goof.QC([]string{"/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport", "scan"}))
+	lines := strings.Split(wifi_str, "\n")
+	out := []string{}
+	for _, l := range lines {
+		ll := trim(l)
+		bits := strings.Split(ll, " ")
+		out = append(out, bits[0])
+	}
+	return out
+}
+
+func makeWifiMenu(ssids []string) *menu.Node {
+	out := menu.MakeNodeLong("Wifi", []*menu.Node{}, "", "")
+	for _, network := range ssids {
+		h := menu.MakeNodeLong(network, []*menu.Node{}, "shell://networksetup -setairportnetwork en0 \""+network+"\" password_goes_here", "")
+
+		out.SubNodes = append(out.SubNodes, h)
+
+	}
+	return out
+}
+
 func onReady() {
 	m := UberMenu()
 	hosts = []HostService{}
@@ -217,6 +247,7 @@ func onReady() {
 
 	m.SubNodes = append(m.SubNodes, netmenu)
 	m.SubNodes = append(m.SubNodes, globalmenu)
+	m.SubNodes = append(m.SubNodes, makeWifiMenu(listWifi()))
 
 	usermenu := makeUserMenu()
 	m.SubNodes = append(m.SubNodes, usermenu)
