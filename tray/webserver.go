@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	menu ".."
 	//"github.com/donomii/menu"
-	".."
 )
 
 //go:embed webfiles/*
