@@ -14,7 +14,7 @@ import (
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
 
-	//".."
+
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )
@@ -97,8 +97,6 @@ func main() {
 	os.Chdir(baseDir)
 	//go ScanAll()
 	LoadConfig()
-	scanPorts = append(scanPorts, Configuration.HttpPort)
-	scanPorts = append(scanPorts, Configuration.StartPagePort)
 	LoadInfo()
 
 	go webserver()
@@ -177,10 +175,14 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 			if s.Ip != "" {
 				ip = s.Ip
 			}
+			protocol := "http"
+			if s.Port == 443 {
+				protocol = "https"
+			}
 			if s.Global {
 				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
 			} else {
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", protocol, ip, s.Port, s.Path), ""))
 			}
 		}
 		out.SubNodes = append(out.SubNodes, h)

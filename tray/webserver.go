@@ -10,7 +10,6 @@ import (
 
 	"github.com/donomii/menu"
 	
-)
 
 //go:embed webfiles/*
 var webapp embed.FS
