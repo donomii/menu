@@ -44,8 +44,13 @@ func Ulimit() int64 {
 }
 
 var hosts = []HostService{}
-var scanPorts = []uint{1, 5, 7, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 23, 25, 53, 37, 42, 67, 68, 69, 70, 80, 88, 110, 119, 123, 137, 138, 139, 143, 177, 220, 445, 443, 514, 995, 989, 990, 1080, 3000, 3001, 3389, 8000, 8001, 8080, 8081, 8008}
+var PortsToScan = []uint{1, 5, 7, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 23, 25, 53, 37, 42, 67, 68, 69, 70, 80, 88, 110, 119, 123, 137, 138, 139, 143, 177, 220, 445, 443, 514, 995, 989, 990, 3000, 3001, 3389, 8000, 8001, 8080, 8081, 8008, 16001, 16002}
 
+func scanPorts() []uint {
+	sp := PortsToScan
+	sp = append(sp, Configuration.HttpPort, Configuration.StartPagePort)
+	return sp
+}
 func ArpScan() {
 
 	keys := []string{}
@@ -53,7 +58,7 @@ func ArpScan() {
 		keys = append(keys, k)
 	}
 	log.Printf("Scanning %v\n", keys)
-	hosts = append(hosts, scanIps(keys, scanPorts)...)
+	hosts = append(hosts, scanIps(keys, scanPorts())...)
 
 }
 func ScanC() {
@@ -62,7 +67,7 @@ func ScanC() {
 
 	classB := map[string]bool{}
 	for _, ip := range ips {
-		hosts = append(hosts, scanNetwork(ip+"/24", scanPorts)...)
+		hosts = append(hosts, scanNetwork(ip+"/24", scanPorts())...)
 		bits := strings.Split(ip, ".")
 		b := bits[0] + "." + bits[1] + ".0.0"
 		classB[b] = true
@@ -74,7 +79,7 @@ func ScanConfig() {
 	log.Println("Scanning user defined networks:", networks)
 	for _, network := range networks {
 		log.Println("Scanning user defined network:", network)
-		hosts = append(hosts, scanNetwork(network, scanPorts)...)
+		hosts = append(hosts, scanNetwork(network, scanPorts())...)
 	}
 
 }
@@ -117,16 +122,20 @@ func ScanPublicInfo() {
 }
 
 func ScanPort(ip string, port uint, timeout time.Duration) bool {
+	if port == 0 {
+		return false
+	}
 	target := fmt.Sprintf("%s:%d", ip, port)
 	conn, err := net.DialTimeout("tcp", target, timeout)
 
 	if err != nil {
 		//log.Println(err)
-		if strings.Contains(err.Error(), "too many open files") {
+		if strings.Contains(err.Error(), "open files") || strings.Contains(err.Error(), "requested address") {
 			time.Sleep(timeout)
+			fmt.Println(ip, ":", port, "retry :", err.Error())
 			ScanPort(ip, port, timeout)
 		} else {
-			//fmt.Println(ip, port, "closed")
+			fmt.Println(ip, ":", port, "closed :", err.Error())
 		}
 		return false
 	}
@@ -212,7 +221,7 @@ func scanNetwork(cidr string, ports []uint) (out []HostService) {
 			lock: semaphore.NewWeighted(Ulimit()),
 		}
 		go func(v string) {
-			openPorts := ps.ScanList(1, 9000, 1000*time.Millisecond, ports)
+			openPorts := ps.ScanList(1, 9000, 5000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
 				out = append(out, HostService{v, openPorts, nil, ""})
 			}

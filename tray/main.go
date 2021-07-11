@@ -7,13 +7,12 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strings"
 
 	//"github.com/donomii/menu"
 
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
-
-	//".."
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )
@@ -96,8 +95,6 @@ func main() {
 	os.Chdir(baseDir)
 	//go ScanAll()
 	LoadConfig()
-	scanPorts = append(scanPorts, Configuration.HttpPort)
-	scanPorts = append(scanPorts, Configuration.StartPagePort)
 	LoadInfo()
 
 	go webserver()
@@ -176,10 +173,14 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 			if s.Ip != "" {
 				ip = s.Ip
 			}
+			protocol := "http"
+			if s.Port == 443 {
+				protocol = "https"
+			}
 			if s.Global {
 				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
 			} else {
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", protocol, ip, s.Port, s.Path), ""))
 			}
 		}
 		out.SubNodes = append(out.SubNodes, h)
@@ -188,12 +189,40 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	return out, global
 }
 
+<<<<<<< HEAD
 func RecallMenu() *menu.Node {
 	m := menu.Recall()
 	out := menu.MakeNodeLong("Recall", []*menu.Node{}, "", "")
 	for _, entry := range m {
 		h := menu.MakeNodeLong(entry[0], []*menu.Node{}, entry[1], "")
 		out.SubNodes = append(out.SubNodes, h)
+=======
+func trim(s string) string {
+	out := strings.TrimSpace(s)
+	return out
+}
+
+func listWifi() []string {
+	//Macosx
+	wifi_str := trim(goof.QC([]string{"/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport", "scan"}))
+	lines := strings.Split(wifi_str, "\n")
+	out := []string{}
+	for _, l := range lines {
+		ll := trim(l)
+		bits := strings.Split(ll, " ")
+		out = append(out, bits[0])
+	}
+	return out
+}
+
+func makeWifiMenu(ssids []string) *menu.Node {
+	out := menu.MakeNodeLong("Wifi", []*menu.Node{}, "", "")
+	for _, network := range ssids {
+		h := menu.MakeNodeLong(network, []*menu.Node{}, "shell://networksetup -setairportnetwork en0 \""+network+"\" password_goes_here", "")
+
+		out.SubNodes = append(out.SubNodes, h)
+
+>>>>>>> b44136f35cb6867b9b57d7b0835137719392782d
 	}
 	return out
 }
@@ -227,6 +256,7 @@ func onReady() {
 
 	m.SubNodes = append(m.SubNodes, netmenu)
 	m.SubNodes = append(m.SubNodes, globalmenu)
+	m.SubNodes = append(m.SubNodes, makeWifiMenu(listWifi()))
 
 	usermenu := makeUserMenu()
 	m.SubNodes = append(m.SubNodes, usermenu)

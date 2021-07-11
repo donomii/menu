@@ -10,8 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	//"github.com/donomii/menu"
-	//".."
+	"github.com/donomii/menu"
 )
 
 //go:embed webfiles/*
@@ -89,7 +88,7 @@ type bookMarkMenu struct {
 func menu2jsmenu(m *menu.Node) bookMarkMenu {
 	l := []link{}
 	for _, item := range m.SubNodes {
-		l = append(l, link{Label: item.Name, Url: strings.ReplaceAll(item.Command, "\"", "'")})
+		l = append(l, link{Label: item.Name, Url: strings.ReplaceAll(strings.ReplaceAll(item.Command, "\"", "'"),"\\","/")})
 	}
 	return bookMarkMenu{Category: m.Name, Bookmarks: l}
 
