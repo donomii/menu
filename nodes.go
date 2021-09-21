@@ -447,10 +447,13 @@ func Activate(value string) bool {
 	if strings.HasPrefix(value, "internal://") {
 		cmd := strings.TrimPrefix(value, "internal://")
 		log.Println("Executing internal", cmd)
+		exePath, err := os.Executable()
+		if err != nil {
+			cwd, _ := os.Getwd()
+			exePath = cwd + "/" + "tray.exe"
+		}
 		switch cmd {
 		case "RunAtStartup":
-			log.Println("Configuring tray to run at startup/login")
-			exePath, _ := os.Executable()
 			app := &autostart.App{
 				Name:        "umhtray",
 				DisplayName: "UMH Tray",

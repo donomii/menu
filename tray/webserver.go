@@ -1,7 +1,9 @@
+// +build go1.16
+
 package main
 
 import (
-	"embed"
+	//"embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,7 +12,6 @@ import (
 
 	"github.com/donomii/menu"
 )
-	
 
 //go:embed webfiles/*
 var webapp embed.FS

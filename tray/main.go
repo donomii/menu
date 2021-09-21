@@ -15,7 +15,6 @@ import (
 
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
-
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )
@@ -197,6 +196,16 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	return out, global
 }
 
+func RecallMenu() *menu.Node {
+	m := menu.Recall()
+	out := menu.MakeNodeLong("Recall", []*menu.Node{}, "", "")
+	for _, entry := range m {
+		h := menu.MakeNodeLong(entry[0], []*menu.Node{}, entry[1], "")
+		out.SubNodes = append(out.SubNodes, h)
+	}
+	return out
+}
+
 func trim(s string) string {
 	out := strings.TrimSpace(s)
 	return out
@@ -221,7 +230,6 @@ func makeWifiMenu(ssids []string) *menu.Node {
 		h := menu.MakeNodeLong(network, []*menu.Node{}, "shell://networksetup -setairportnetwork en0 \""+network+"\" password_goes_here", "")
 
 		out.SubNodes = append(out.SubNodes, h)
-
 	}
 	return out
 }
@@ -260,6 +268,7 @@ func onReady() {
 	usermenu := makeUserMenu()
 	m.SubNodes = append(m.SubNodes, usermenu)
 	m.SubNodes = append(m.SubNodes, usermenu.SubNodes...)
+	m.SubNodes = append(m.SubNodes, RecallMenu())
 	addTopLevelMenuItems(m)
 
 	mQuitOrig := systray.AddMenuItem("Reload", "Reload menu")
