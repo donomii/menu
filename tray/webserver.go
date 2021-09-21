@@ -1,9 +1,11 @@
+//go:build go1.16
 // +build go1.16
 
 package main
 
 import (
 	//"embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -88,7 +90,7 @@ type bookMarkMenu struct {
 func menu2jsmenu(m *menu.Node) bookMarkMenu {
 	l := []link{}
 	for _, item := range m.SubNodes {
-		l = append(l, link{Label: item.Name, Url: strings.ReplaceAll(strings.ReplaceAll(item.Command, "\"", "'"),"\\","/")})
+		l = append(l, link{Label: item.Name, Url: strings.ReplaceAll(strings.ReplaceAll(item.Command, "\"", "'"), "\\", "/")})
 	}
 	return bookMarkMenu{Category: m.Name, Bookmarks: l}
 
