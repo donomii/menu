@@ -5,15 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 	"strings"
+	"syscall"
 
 	//"github.com/donomii/menu"
 
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
-
 
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
@@ -108,6 +109,7 @@ func main() {
 
 	for {
 		systray.Run(onReady, onExit)
+		log.Println("Reloading")
 	}
 }
 
@@ -167,7 +169,11 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 	for _, host := range hosts {
 		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, host.Ip, "")
 		for _, port := range host.Ports {
-			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", PortMap()[int(port)], host.Ip, port), ""))
+			protocol := "http"
+			if port == 443 {
+				protocol = "https"
+			}
+			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
 		}
 		fmt.Printf("Processing services: %+v\n", host.Services)
 		for _, s := range host.Services {
@@ -259,9 +265,16 @@ func onReady() {
 	mQuitOrig := systray.AddMenuItem("Reload", "Reload menu")
 	go func() {
 		<-mQuitOrig.ClickedCh
-		fmt.Println("Requesting quit")
+		if runtime.GOOS == "darwin" {
+			procAttr := new(syscall.ProcAttr)
+			procAttr.Files = []uintptr{0, 1, 2}
+			procAttr.Dir = os.Getenv("PWD")
+			procAttr.Env = os.Environ()
+			exe, _ := os.Executable()
+			syscall.ForkExec(exe, os.Args, procAttr)
+		}
 		systray.Quit()
-		fmt.Println("Finished quitting")
+		fmt.Println("Systray stopped")
 	}()
 
 	// We can manipulate the systray in other goroutines
@@ -297,6 +310,7 @@ func onReady() {
 						}
 				*/
 			case <-mQuit.ClickedCh:
+				fmt.Println("Requesting quit")
 				systray.Quit()
 				os.Exit(0)
 			}
