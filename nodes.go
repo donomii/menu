@@ -156,6 +156,7 @@ func Dir2Menu(parent *Node) *Node {
 	return parent
 }
 
+//Get a list of all (major gui) apps installed on the system
 func Apps() [][]string {
 
 	out := [][]string{}
@@ -460,6 +461,8 @@ func Activate(value string) bool {
 				Exec:        []string{exePath},
 			}
 			app.Enable()
+		case "Exit":
+			os.Exit(0)
 		}
 	}
 

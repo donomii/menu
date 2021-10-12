@@ -1,0 +1,68 @@
+{
+ "Name": "User Menu",
+ "SubNodes": [
+   {
+    "Name": "Start Page",
+    "SubNodes": [],
+    "Command": "http://localhost:16001/webfiles/",
+    "Data": ""
+   },
+   {
+    "Name": "VNC Games machine",
+    "SubNodes": [],
+    "Command": "shell://open vnc://192.168.178.39",
+    "Data": ""
+   },
+{
+    "Name": "go build -o test .",
+    "SubNodes": [],
+    "Command": "shell://go build -o test .",
+    "Data": ""
+   },
+{
+    "Name": "run test .",
+    "SubNodes": [],
+    "Command": "shell://./test",
+    "Data": ""
+   },
+   {
+   "Name": "Graphana",
+   "SubNodes": [],
+   "Command": "http://192.168.178.23:3000/",
+   "Data": ""
+  },
+  {
+    "Name": "Gossa",
+    "SubNodes": [],
+    "Command": "http://192.168.178.39:8001/",
+    "Data": ""
+   },
+  {
+   "Name": "Menu Folder",
+   "SubNodes": [],
+   "Command": "file://.",
+   "Data": ""
+  },
+  {
+   "Name": "Run at Startup",
+   "SubNodes": [],
+   "Command": "internal://RunAtStartup",
+   "Data": ""
+  },
+
+  {
+   "Name": "Edit this menu",
+   "SubNodes": [],
+   "Command": "file://config/usermenu.json",
+   "Data": ""
+ },
+  {
+   "Name": "Exit",
+   "SubNodes": [],
+   "Command": "internal://exit",
+   "Data": ""
+  }
+],
+ "Command": "User Menu",
+ "Data": ""
+}
