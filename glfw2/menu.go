@@ -13,9 +13,15 @@ var Menu *menu.Node
 
 func loadUserMenu() *menu.Node {
 	var usermenu menu.Node
-	exeDir := goof.ExecutablePath()
-	b, _ := ioutil.ReadFile(exeDir + "/config/usermenu.json")
-	json.Unmarshal(b, &usermenu)
+	var data []byte
+	if goof.Exists(goof.HomePath(".umh/config/usermenu.json")){
+		data, _ = ioutil.ReadFile(goof.HomePath(".umh/config/usermenu.json"))
+	}else {
+		exeDir := goof.ExecutablePath()
+		data, _ = ioutil.ReadFile(exeDir + "/config/usermenu.json")
+	}
+	
+	json.Unmarshal(data, &usermenu)
 	return &usermenu
 }
 

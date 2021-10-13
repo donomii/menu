@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
+	"bytes"
 
 	"github.com/atotto/clipboard"
 	"github.com/emersion/go-autostart"
@@ -440,10 +442,25 @@ func Recall() [][]string {
 	}
 	return out
 }
-
+type cmdSubs struct {
+	AppDir string
+	ConfigDir string
+	Cwd    string
+	Command string
+}
 func Activate(value string) bool {
 	result := ""
 	log.Println("selected for activation:", value)
+
+
+	subs := cmdSubs{goof.ExecutablePath(),goof.HomePath(".umh/"), goof.Cwd(), value}
+	tmpl, err := template.New("test").Parse(value)
+	if err != nil { panic(err) }
+	var s string
+	buf := bytes.NewBufferString(s)
+	err = tmpl.Execute(buf, subs)
+	value = buf.String()
+	fmt.Printf("Resolved template:%v\n", value)
 
 	if strings.HasPrefix(value, "internal://") {
 		cmd := strings.TrimPrefix(value, "internal://")

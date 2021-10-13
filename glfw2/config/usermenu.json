@@ -26,9 +26,9 @@
     "Data": ""
    },
    {
-   "Name": "Graphana",
+   "Name": "Start Graphana",
    "SubNodes": [],
-   "Command": "http://192.168.178.23:3000/",
+   "Command": "shell://ulimit -n 99999; make run",
    "Data": ""
   },
   {

@@ -193,25 +193,32 @@ func handleKeys(window *glfw.Window) {
 		val, _ := strconv.ParseInt(text, 10, strconv.IntSize)
 		fmt.Println("Activating menu option", val)
 		item := Menu.SubNodes[val]
-		hideWindow()
+		
 		fmt.Println("Activating menu option", item.Name)
+		SwitchToCwd()
+		
 		menu.Activate(item.Command)
-
+		hideWindow()
 	})
 }
 
 func popWindow() {
 	log.Println("Popping window")
+	SwitchToCwd()
 	update = true
 	window.Restore()
 	window.Show()
 
 }
 func hideWindow() {
+
+
 	log.Println("Hiding window")
 	window.Iconify()
 	window.Hide()
-
+	if !preserveWindow {
+		os.Exit(0)
+	}
 }
 func toggleWindow() {
 	log.Println("Toggling window")
@@ -232,10 +239,25 @@ func toggleWindow() {
 		}
 	}
 }
+
+func SwitchToCwd(){
+	cwdb, err:= os.ReadFile(goof.HomePath(".umh/cwd"))
+	cwds := strings.TrimSpace(string(cwdb))
+	if err != nil {
+		fmt.Println("Error changing dir:", err)
+		panic(err)
+	}
+	fmt.Println("Switching to dir", string(cwds))
+	os.Chdir(string(cwds))
+	fmt.Println("Dir after switch:", goof.Cwd())
+}
+
 func main() {
 	if runtime.GOOS == "darwin" {
 		preserveWindow = false
 	}
+	SwitchToCwd()
+	
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
 	flag.Parse()
