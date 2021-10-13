@@ -23,7 +23,7 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
     // The incoming keycode.
     CGKeyCode keycode = (CGKeyCode)CGEventGetIntegerValueField( event, kCGKeyboardEventKeycode);
 
-    printf("Key: %i\n", keycode);
+    //printf("Key: %i\n", keycode);
     if (keycode == (CGKeyCode)111) {
       if (fork()==0) {
         printf("Launched child to run %s\n", target);
