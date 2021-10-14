@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
@@ -15,10 +16,12 @@ func loadUserMenu() *menu.Node {
 	var usermenu menu.Node
 	var data []byte
 	if goof.Exists(goof.HomePath(".umh/config/usermenu.json")){
+		log.Println("Loading menu from ",goof.HomePath(".umh/config/usermenu.json"))
 		data, _ = ioutil.ReadFile(goof.HomePath(".umh/config/usermenu.json"))
 	}else {
 		exeDir := goof.ExecutablePath()
 		data, _ = ioutil.ReadFile(exeDir + "/config/usermenu.json")
+		log.Println("Loading menu from ",exeDir + "/config/usermenu.json")
 	}
 	
 	json.Unmarshal(data, &usermenu)
