@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
+	
 
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
@@ -12,19 +12,24 @@ import (
 
 var Menu *menu.Node
 
-func loadUserMenu() *menu.Node {
+func LoadUserMenu() *menu.Node {
 	var usermenu menu.Node
 	var data []byte
-	if goof.Exists(goof.HomePath(".umh/config/usermenu.json")){
-		log.Println("Loading menu from ",goof.HomePath(".umh/config/usermenu.json"))
-		data, _ = ioutil.ReadFile(goof.HomePath(".umh/config/usermenu.json"))
+	var configPath string =goof.HomePath(".umh/config/usermenu.json")
+	if goof.Exists(configPath){
+		fmt.Println("Loading menu from ",configPath)
+		data, _ = ioutil.ReadFile(configPath)
 	}else {
 		exeDir := goof.ExecutablePath()
-		data, _ = ioutil.ReadFile(exeDir + "/config/usermenu.json")
-		log.Println("Loading menu from ",exeDir + "/config/usermenu.json")
+		configPath = exeDir + "/config/usermenu.json"
+		data, _ = ioutil.ReadFile(configPath)
+		fmt.Println("Loading menu from ",configPath)
 	}
 	
-	json.Unmarshal(data, &usermenu)
+	err := json.Unmarshal(data, &usermenu)
+	if err != nil {
+	usermenu = menu.Node{Name: "Error in config file "+configPath, Command: "file://"+configPath}
+	}
 	return &usermenu
 }
 

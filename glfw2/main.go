@@ -204,15 +204,15 @@ func handleKeys(window *glfw.Window) {
 
 func popWindow() {
 	log.Println("Popping window")
+	Menu = LoadUserMenu()
 	SwitchToCwd()
 	update = true
 	window.Restore()
 	window.Show()
 
 }
+
 func hideWindow() {
-
-
 	log.Println("Hiding window")
 	window.Iconify()
 	window.Hide()
@@ -221,6 +221,7 @@ func hideWindow() {
 	}
 }
 func toggleWindow() {
+	Menu = LoadUserMenu()
 	log.Println("Toggling window")
 	wantWindow = !wantWindow
 	if wantWindow {
@@ -256,6 +257,7 @@ func main() {
 	if runtime.GOOS == "darwin" {
 		preserveWindow = false
 	}
+	Menu = LoadUserMenu()
 	SwitchToCwd()
 	
 	var doLogs bool
@@ -366,7 +368,7 @@ func createWindow() {
 		}
 
 		if update {
-			Menu = loadUserMenu()
+			
 			renderEd(edWidth, edHeight, renderMenuText(Menu))
 			blit(pic, edWidth, edHeight)
 			window.SwapBuffers()

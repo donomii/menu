@@ -44,7 +44,7 @@ func Ulimit() int64 {
 }
 
 var hosts = []HostService{}
-var PortsToScan = []uint{1, 5, 7, 9, 11, 13, 15, 17, 18, 19, 20, 21, 22, 23, 25, 53, 37, 42, 67, 68, 69, 70, 80, 88, 110, 119, 123, 137, 138, 139, 143, 177, 220, 445, 443, 514, 995, 989, 990, 3000, 3001, 3389, 8000, 8001, 8080, 8081, 8008, 16001, 16002}
+var PortsToScan = []uint{1, 20, 21, 22, 23, 25, 80, 443, 8000, 8001, 8080, 8081, 8008, 9000, 16001, 16002}
 
 func scanPorts() []uint {
 	sp := PortsToScan
@@ -243,7 +243,7 @@ func scanIps(hosts []string, ports []uint) (out []HostService) {
 			lock: semaphore.NewWeighted(Ulimit()),
 		}
 		go func(v string) {
-			openPorts := ps.ScanList(1, 9000, 1000*time.Millisecond, ports)
+			openPorts := ps.ScanList(1, 9000, 3000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
 				out = append(out, HostService{v, openPorts, nil, ""})
 			}

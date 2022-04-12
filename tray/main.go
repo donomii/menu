@@ -184,10 +184,13 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 			if s.Port == 443 {
 				protocol = "https"
 			}
+			if !strings.HasPrefix(s.Path, "/") {
+				s.Path = "/" + s.Path
+			}
 			if s.Global {
-				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", s.Protocol, ip, s.Port, s.Path), ""))
+				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
 			} else {
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v/%v", protocol, ip, s.Port, s.Path), ""))
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
 			}
 		}
 		out.SubNodes = append(out.SubNodes, h)
@@ -213,7 +216,8 @@ func trim(s string) string {
 
 func listWifi() []string {
 	//Macosx
-	wifi_str := trim(goof.QC([]string{"/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport", "scan"}))
+	str, _ := goof.QC([]string{"/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport", "scan"})
+	wifi_str := trim(str)
 	lines := strings.Split(wifi_str, "\n")
 	out := []string{}
 	for _, l := range lines {
@@ -237,18 +241,7 @@ func makeWifiMenu(ssids []string) *menu.Node {
 func onReady() {
 	m := UberMenu()
 	hosts = []HostService{}
-	if !noScan {
-
-		ArpScan()
-		ScanC()
-		ScanConfig()
-
-		uniqueifyHosts()
-		ScanPublicInfo()
-	}
-	fmt.Println("NoScan:", noScan)
-
-	netmenu, globalmenu := makeNetworkPcMenu(hosts)
+	netmenus := menu.Node{Name: "Network", SubNodes: []*menu.Node{}}
 
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
 	systray.AddMenuItem("UMH", "Universal Menu")
@@ -261,8 +254,6 @@ func onReady() {
 	}
 	m.SubNodes = append(m.SubNodes, apps)
 
-	m.SubNodes = append(m.SubNodes, netmenu)
-	m.SubNodes = append(m.SubNodes, globalmenu)
 	m.SubNodes = append(m.SubNodes, makeWifiMenu(listWifi()))
 
 	usermenu := makeUserMenu()
@@ -274,6 +265,7 @@ func onReady() {
 	mQuitOrig := systray.AddMenuItem("Reload", "Reload menu")
 	go func() {
 		<-mQuitOrig.ClickedCh
+
 		if runtime.GOOS == "darwin" {
 			procAttr := new(syscall.ProcAttr)
 			procAttr.Files = []uintptr{0, 1, 2}
@@ -302,6 +294,29 @@ func onReady() {
 
 		// Sets the icon of a menu item. Only available on Mac.
 		mQuit.SetIcon(icon.Data)
+
+		//Start the network scan after the menu is fully loaded, otherwise we can run out of file
+		//handles and not be able to open the config files
+		go func() {
+
+			if !noScan {
+
+				ArpScan()
+				ScanC()
+				ScanConfig()
+
+				uniqueifyHosts()
+				ScanPublicInfo()
+			} else {
+				fmt.Println("Network scan disabled")
+			}
+
+			netmenu, globalmenu := makeNetworkPcMenu(hosts)
+
+			netmenus.SubNodes = append(netmenus.SubNodes, netmenu)
+			netmenus.SubNodes = append(netmenus.SubNodes, globalmenu)
+			addTopLevelMenuItems(&netmenus)
+		}()
 
 		for {
 			select {
