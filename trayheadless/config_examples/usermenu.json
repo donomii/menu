@@ -1,0 +1,82 @@
+{
+  "Name": "User Menu",
+  "SubNodes": [
+    {
+      "Name": "-------------"
+    },
+    {
+      "Name": "Start Page",
+      "SubNodes": [],
+      "Command": "http://localhost:16001/webfiles/",
+      "Data": ""
+    },
+    {
+      "Name": "Launcher",
+      "SubNodes": [],
+      "Command": "exec://universal_menu_main.exe",
+      "Data": ""
+    },
+    {
+      "Name": "Uploads",
+      "Command": "file://uploads/"
+    },
+    {
+      "Name": "Downloads",
+      "SubNodes": [],
+      "Command": "file://downloads/",
+      "Data": ""
+    },
+    {
+      "Name": "Settings",
+      "SubNodes": [],
+      "Command": "file://settings/",
+      "Data": ""
+    },
+    {
+      "Name": "Logout",
+      "SubNodes": [],
+      "Command": "file://logout/",
+      "Data": ""
+    }
+   "Data": ""
+  },
+  {
+    "Name": "Task Manager",
+    "SubNodes": [],
+    "Command": "exec://taskmgr.exe",
+    "Data": ""
+  },
+  {
+    "Name": "Activity Manager",
+    "SubNodes": [],
+    "Command": "exec:///Applications/ActivityManager",
+    "Data": ""
+  },
+  {
+    "Name": "Jellyfin",
+    "SubNodes": [],
+    "Command": "http://192.168.178.43:8096/",
+    "Data": ""
+  },
+  {
+    "Name": "Menu Folder",
+    "SubNodes": [],
+    "Command": "file://.",
+    "Data": ""
+  },
+  {
+    "Name": "Run at Startup",
+    "SubNodes": [],
+    "Command": "internal://RunAtStartup",
+    "Data": ""
+  },
+  {
+    "Name": "Edit this menu",
+    "SubNodes": [],
+    "Command": "file://config/usermenu.json",
+    "Data": ""
+  }
+],
+"Command": "User Menu",
+"Data": ""
+}

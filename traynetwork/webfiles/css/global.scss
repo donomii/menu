@@ -1,0 +1,285 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-family: 'Manrope', sans-serif;
+    background-color: black;
+    color: white;
+    font-size: 16px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    color: white;
+}
+
+section {
+    margin: 0 auto;
+    max-width: 1200px;
+}
+
+#main {
+    padding: 0 25px;
+    padding-top: 16vh;
+    padding-bottom: 15vh;
+}
+
+@import './partials/background';
+@import './partials/bookmarks';
+@import './partials/snow';
+@import './partials/inputs';
+
+#Clock {
+    font-size: 3rem;
+    min-width: 220px;
+    user-select: none;
+}
+
+#Date {
+    user-select: none;
+    margin-bottom: 12px;
+}
+
+
+#Top {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2em;
+}
+
+#SearchBox {
+    flex: 0;
+    display: flex;
+    width: 100%;
+    min-height: 46px; // Due to unforeseen consequences, the textbox slighty shrinks when there is no voiceReg toggle button in the parent container.
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+
+    #SearchBoxIcon {
+        position: absolute;
+        left: 15px;
+        top: 11px;
+        z-index: 1;
+        filter: invert(100%);
+        user-select: none;
+        pointer-events: none;
+    }
+
+    .blur {
+        display: inline-block;
+        width: 100%;
+        max-width: 480px;
+        border-radius: 5px;
+    }
+
+    input {
+        text-indent: 35px;
+    }
+}
+
+#Background_ImageUrl {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -54;
+    background-size: cover;
+}
+
+$drawerWidth: 360px;
+$drawerOffset: 25px;
+$drawerContentPadding: 23px;
+
+.DrawerRoot {
+    z-index: 5;
+    position: fixed;
+    top: 0;
+    left: -$drawerWidth + $drawerOffset;
+    bottom: 0;
+    background-color: white;
+    color: black;
+    backdrop-filter: blur(0px);
+    width: $drawerWidth;
+    opacity: .05;
+    will-change: opacity;
+    transition: left 0.2s ease, opacity 0.2s ease;
+
+    &:hover {
+        opacity: 1 !important;
+        left: 0;
+    }
+
+    .DrawerHeader {
+        margin-top: 12px;
+        padding: 12px $drawerContentPadding;
+        
+        h3 {
+            font-weight: 600;
+        }
+    }
+
+    .DrawerCaption {
+        margin-bottom: 3px;
+        font-size: .8rem;
+    }
+
+    .SteamDrawer_Configuration {
+        padding: 0 $drawerContentPadding;
+    }
+}
+
+.SteamGame {
+    padding-left: ($drawerContentPadding - 6px);
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+
+    transition: padding-top 0.2s ease, padding-bottom 0.2s ease ;
+
+    .SteamGame_Backdrop {
+        position: absolute;
+        top: calc($drawerWidth / 2);
+        top: 0;
+        left: 0;
+        width: $drawerWidth;
+        z-index: -6;
+        opacity: 0;
+        transform: scale(1.2);
+    }
+    
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.308);
+        color: white;
+        font-weight: 600;
+       
+        &.SteamGame--expandable {
+            padding-bottom: 28px ;
+        }
+        
+
+        .SteamGame_Backdrop {
+            opacity: 1;
+            // I chose to not always blur the backdrop, but only when hovered.
+            // This is because if we move blurred elements around, we get weird blur artifacting on non-moving blur elements.
+            // Good job, Chrome. 
+            filter: blur(15px);
+        }
+    }
+
+    .SteamGame_Icon {
+        transform: scale(0.7);
+        user-select: none;
+    }
+
+    .SteamGame_Label {
+        user-select: none;
+        text-indent: 10px;
+    }
+
+    .SteamGame_Actions {
+        position: absolute;
+        top: 44px;
+        left: 79px;
+        z-index: 3;
+    }
+}
+
+
+.EditorRoot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999999999999999;
+    opacity: 0;
+    pointer-events: none;
+
+    background-color: rgba(0, 0, 0, 0.432);
+    // backdrop-filter: blur(15px);
+
+    textarea {
+        flex: 1;
+        background: transparent;
+        color: white;
+        outline: none;
+        border: none;
+        padding: 10px;
+        margin: 5px;
+        resize: none;
+        padding-bottom: 75px;
+    }
+
+    transition: opacity 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    &.open {
+
+        opacity: 1;
+        pointer-events: inherit ;
+    }
+
+    .Editor_Toolbar {
+        align-items: center;
+        grid-gap: 15px;
+        padding: 15px;
+        background: rgba(12, 12, 12, 0.938);
+        background: rgba(211, 211, 211, 0.075);
+        align-items: center;
+    }
+
+    .Editor_Actions {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat( auto-fill, minmax(160px, 1fr), );
+        grid-gap: 15px;
+        align-items: center;
+    }
+
+    #Editor_ErrorMessage {
+        color: rgb(241, 64, 64);
+        font-weight: 500;
+        user-select: none;
+        padding-bottom: 5px;
+
+        &.open {
+            visibility: visible;
+        }
+    }
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+body::-webkit-scrollbar {
+    width: 0;
+}
+  
+::-webkit-scrollbar-track {
+    background: #00000000;
+}
+  
+::-webkit-scrollbar-thumb {
+    background: #00000033;
+    border-radius: 15px;
+}
+ 
+*:hover > ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.671);
+
+    &:hover {
+        background: rgb(255, 255, 255);
+    }
+}

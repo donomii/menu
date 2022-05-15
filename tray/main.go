@@ -9,10 +9,12 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 
 	//"github.com/donomii/menu"
 
+	tn "../traynetwork"
 	"github.com/donomii/goof"
 	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
@@ -21,59 +23,23 @@ import (
 
 var noScan bool
 
-type Config struct {
-	HttpPort         uint
-	StartPagePort    uint
-	Name             string
-	MaxUploadSize    uint
-	Networks         []string
-	ArpCheckInterval int
-}
-
-var Configuration Config
-
-type Service struct {
-	Name        string
-	Ip          string
-	Port        int
-	Protocol    string
-	Description string
-	Global      bool
-	Path        string
-}
-
-type InfoStruct struct {
-	Name     string
-	Services []Service
-}
-
 var setStatus func(string)
 
-var Info InfoStruct
-
-func LoadConfig() {
-	data, err := ioutil.ReadFile("config/config.json")
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(data, &Configuration)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Loaded config: %+v\n", Configuration)
-}
+var netmenu2 *systray.MenuItem
+var netEntities map[string]tn.HostService
 
 func LoadInfo() {
+
 	fmt.Println("Loading info")
 	data, err := ioutil.ReadFile("config/public_info.json")
 	if err != nil {
 		panic(err)
 	}
-	err = json.Unmarshal(data, &Info)
+	err = json.Unmarshal(data, &tn.Info)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Loaded info: %+v\n", Info)
+	fmt.Printf("Loaded info: %+v\n", tn.Info)
 }
 
 func UberMenu() *menu.Node {
@@ -96,10 +62,10 @@ func main() {
 	baseDir := goof.ExecutablePath()
 	os.Chdir(baseDir)
 	//go ScanAll()
-	LoadConfig()
+	tn.LoadConfig()
 	LoadInfo()
 
-	go webserver()
+	go tn.Webserver(tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
 	onExit := func() {
 		//now := time.Now()
 		//ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
@@ -109,6 +75,39 @@ func main() {
 	for {
 		systray.Run(onReady, onExit)
 		log.Println("Reloading")
+	}
+}
+
+var netEntitiesLock sync.Mutex
+
+func AddNetworkNode(entry, service string, port uint) {
+	netEntitiesLock.Lock()
+	defer netEntitiesLock.Unlock()
+	fmt.Println("Adding network node", entry)
+	if netEntities == nil {
+		netEntities = make(map[string]tn.HostService)
+	}
+	var mitem *systray.MenuItem
+	if _, ok := netEntities[entry]; !ok {
+		ent := tn.HostService{
+			Name: entry,
+		}
+
+		netEntities[entry] = ent
+		mitem = netmenu2.AddSubMenuItemCheckbox(entry, fmt.Sprintf("network %v", entry), false)
+
+		ent.MenuItem = mitem
+	}
+	if ent, ok := netEntities[entry]; ok {
+		ent.Services = append(ent.Services, tn.Service{
+			Name:        service,
+			Port:        int(port),
+			Protocol:    "tcp",
+			Description: "",
+			Global:      false,
+		})
+		mitem = ent.MenuItem
+		mitem.AddSubMenuItemCheckbox(service, fmt.Sprintf("port %v", port), false)
 	}
 }
 
@@ -155,14 +154,7 @@ func addTopLevelMenuItems(m *menu.Node) {
 	}
 }
 
-func makeUserMenu() *menu.Node {
-	var usermenu menu.Node
-	b, _ := ioutil.ReadFile("config/usermenu.json")
-	json.Unmarshal(b, &usermenu)
-	return &usermenu
-}
-
-func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
+func makeNetworkPcMenu(hosts []tn.HostService) (*menu.Node, *menu.Node) {
 	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
 	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
 	for _, host := range hosts {
@@ -172,7 +164,7 @@ func makeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
 			if port == 443 {
 				protocol = "https"
 			}
-			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
+			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", tn.PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
 		}
 		fmt.Printf("Processing services: %+v\n", host.Services)
 		for _, s := range host.Services {
@@ -240,7 +232,7 @@ func makeWifiMenu(ssids []string) *menu.Node {
 
 func onReady() {
 	m := UberMenu()
-	hosts = []HostService{}
+	tn.Hosts = []tn.HostService{}
 	netmenus := menu.Node{Name: "Network", SubNodes: []*menu.Node{}}
 
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)
@@ -256,7 +248,7 @@ func onReady() {
 
 	m.SubNodes = append(m.SubNodes, makeWifiMenu(listWifi()))
 
-	usermenu := makeUserMenu()
+	usermenu := tn.MakeUserMenu()
 	m.SubNodes = append(m.SubNodes, usermenu)
 	m.SubNodes = append(m.SubNodes, usermenu.SubNodes...)
 	m.SubNodes = append(m.SubNodes, RecallMenu())
@@ -294,28 +286,29 @@ func onReady() {
 
 		// Sets the icon of a menu item. Only available on Mac.
 		mQuit.SetIcon(icon.Data)
-
+		netmenu2 = systray.AddMenuItem("Network", "Network")
 		//Start the network scan after the menu is fully loaded, otherwise we can run out of file
 		//handles and not be able to open the config files
 		go func() {
 
 			if !noScan {
+				tn.PortsToScan = append(tn.PortsToScan, tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
+				tn.ArpScan()
+				tn.ScanC()
+				tn.ScanConfig()
 
-				ArpScan()
-				ScanC()
-				ScanConfig()
-
-				uniqueifyHosts()
-				ScanPublicInfo()
+				tn.UniqueifyHosts()
+				tn.ScanPublicInfo()
 			} else {
 				fmt.Println("Network scan disabled")
 			}
 
-			netmenu, globalmenu := makeNetworkPcMenu(hosts)
+			netmenu, globalmenu := makeNetworkPcMenu(tn.Hosts)
 
 			netmenus.SubNodes = append(netmenus.SubNodes, netmenu)
 			netmenus.SubNodes = append(netmenus.SubNodes, globalmenu)
 			addTopLevelMenuItems(&netmenus)
+
 		}()
 
 		for {
