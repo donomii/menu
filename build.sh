@@ -1,5 +1,6 @@
 #!/bin/sh
-export GO111MODULE=off
+export GO111MODULE=auto
+go get github.com/mostlygeek/arp github.com/getlantern/systray golang.org/x/sync/semaphore 
 mkdir build
 cd build
 rm universal_menu_main.exe universal_menu_command_line_toggle universal_menu_hotkey_monitor universal_launcher_main.exe KeyTap_mac tray_menu.exe

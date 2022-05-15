@@ -14,9 +14,9 @@ import (
 
 	//"github.com/donomii/menu"
 
+	menu ".."
 	tn "../traynetwork"
 	"github.com/donomii/goof"
-	"github.com/donomii/menu"
 	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )

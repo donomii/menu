@@ -13,9 +13,9 @@ import (
 
 	//"github.com/donomii/menu"
 
+	menu ".."
 	tn "../traynetwork"
 	"github.com/donomii/goof"
-	"github.com/donomii/menu"
 )
 
 var noScan bool

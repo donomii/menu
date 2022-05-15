@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/donomii/menu"
+	menu ".."
 )
 
 var Info InfoStruct
