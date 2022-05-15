@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/donomii/goof"
-	"github.com/getlantern/systray"
 	"github.com/mostlygeek/arp"
 	"golang.org/x/sync/semaphore"
 )
@@ -27,7 +26,6 @@ type HostService struct {
 	Services []Service
 	Name     string
 	LastSeen time.Time
-	MenuItem *systray.MenuItem
 }
 
 type HostServiceList []HostService
@@ -236,7 +234,7 @@ func scanNetwork(cidr string, ports []uint) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 5000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts, nil, "", time.Now(), nil})
+				out = append(out, HostService{v, openPorts, nil, "", time.Now()})
 			}
 			wg.Done()
 		}(v)
@@ -258,7 +256,7 @@ func scanIps(hosts []string, ports []uint) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 3000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts, nil, "", time.Now(), nil})
+				out = append(out, HostService{v, openPorts, nil, "", time.Now()})
 			}
 			wg.Done()
 		}(v)

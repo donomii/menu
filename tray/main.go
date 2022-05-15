@@ -87,16 +87,16 @@ func AddNetworkNode(entry, service string, port uint) {
 	if netEntities == nil {
 		netEntities = make(map[string]tn.HostService)
 	}
-	var mitem *systray.MenuItem
+	//var mitem *systray.MenuItem
 	if _, ok := netEntities[entry]; !ok {
 		ent := tn.HostService{
 			Name: entry,
 		}
 
 		netEntities[entry] = ent
-		mitem = netmenu2.AddSubMenuItemCheckbox(entry, fmt.Sprintf("network %v", entry), false)
+		//mitem = netmenu2.AddSubMenuItemCheckbox(entry, fmt.Sprintf("network %v", entry), false)
 
-		ent.MenuItem = mitem
+		//ent.MenuItem = mitem
 	}
 	if ent, ok := netEntities[entry]; ok {
 		ent.Services = append(ent.Services, tn.Service{
@@ -106,8 +106,8 @@ func AddNetworkNode(entry, service string, port uint) {
 			Description: "",
 			Global:      false,
 		})
-		mitem = ent.MenuItem
-		mitem.AddSubMenuItemCheckbox(service, fmt.Sprintf("port %v", port), false)
+		//mitem = ent.MenuItem
+		//mitem.AddSubMenuItemCheckbox(service, fmt.Sprintf("port %v", port), false)
 	}
 }
 
