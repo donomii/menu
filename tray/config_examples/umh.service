@@ -1,0 +1,15 @@
+[Unit]
+Description=Universal Menu p2p
+
+[Service]
+User=root
+WorkingDirectory=/home/pi/git/menu/traymenu
+ExecStart=/home/pi/git/menu/traymenu/trayheadless
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+[Unit]
+After=network-online.target
+Wants=network-online.target
