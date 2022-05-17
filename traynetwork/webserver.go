@@ -75,6 +75,9 @@ func contact(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	body, _ := ioutil.ReadAll(req.Body)
 	json.Unmarshal(body, &data)
+	//Add the remote ip to the list of hosts
+	log.Println("Received contact from:", ip)
+	log.Printf("Received hosts list: %+v\n", data)
 	Hosts = append(Hosts, data...)
 	UniqueifyHosts()
 	w.Write([]byte(fmt.Sprint(ip)))

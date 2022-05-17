@@ -63,6 +63,14 @@ func main() {
 
 	tn.Webserver(tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
 
+	go func() {
+
+		for {
+			tn.UpdatePeers()
+			time.Sleep(time.Second * 5)
+		}
+	}()
+
 	for {
 		time.Sleep(time.Second * 5)
 	}
