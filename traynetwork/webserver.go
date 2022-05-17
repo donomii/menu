@@ -92,6 +92,7 @@ func UpdatePeers() {
 	for _, host := range Hosts {
 		//Post the hosts list to the host
 		data, _ := json.Marshal(Hosts)
+		log.Printf("Sending hosts list to http://%v:%v/contact", host.Ip, Configuration.HttpPort)
 		http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", strings.NewReader(string(data)))
 	}
 }

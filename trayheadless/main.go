@@ -61,8 +61,6 @@ func main() {
 	tn.LoadConfig()
 	LoadInfo()
 
-	tn.Webserver(tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
-
 	go func() {
 
 		for {
@@ -70,6 +68,8 @@ func main() {
 			time.Sleep(time.Second * 5)
 		}
 	}()
+
+	tn.Webserver(tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
 
 	for {
 		time.Sleep(time.Second * 5)
