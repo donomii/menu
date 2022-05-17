@@ -64,12 +64,12 @@ func main() {
 
 	if !noScan {
 		tn.PortsToScan = append(tn.PortsToScan, tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
-		tn.ArpScan()
-		tn.ScanC()
+		//tn.ArpScan()
+		//tn.ScanC()
 		tn.ScanConfig()
 
-		tn.UniqueifyHosts()
 		tn.ScanPublicInfo()
+		tn.UniqueifyHosts()
 	}
 	go func() {
 

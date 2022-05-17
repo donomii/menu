@@ -41,8 +41,10 @@ type PortScanner struct {
 
 func Ulimit() int64 {
 
-	return 1000
+	return 1
 }
+
+var GlobalScanSemaphore = semaphore.NewWeighted(5)
 
 var Hosts = []HostService{}
 
@@ -235,7 +237,7 @@ func scanNetwork(cidr string, ports []uint) (out []HostService) {
 		//fmt.Println("Scanning", v)
 		ps := &PortScanner{
 			ip:   v,
-			lock: semaphore.NewWeighted(Ulimit()),
+			lock: GlobalScanSemaphore,
 		}
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 5000*time.Millisecond, ports)
@@ -257,7 +259,7 @@ func scanIps(hosts []string, ports []uint) (out []HostService) {
 		//fmt.Println("Scanning", v)
 		ps := &PortScanner{
 			ip:   v,
-			lock: semaphore.NewWeighted(Ulimit()),
+			lock: GlobalScanSemaphore,
 		}
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 3000*time.Millisecond, ports)

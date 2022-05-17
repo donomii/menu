@@ -78,6 +78,11 @@ func main() {
 
 		for {
 			log.Println("Sending hosts list to peers")
+
+			//Print known hosts
+			for _, v := range tn.Hosts {
+				fmt.Printf("%+v\n", v.Ip)
+			}
 			tn.UpdatePeers()
 			time.Sleep(ti)
 
@@ -305,12 +310,12 @@ func onReady() {
 
 			if !noScan {
 				tn.PortsToScan = append(tn.PortsToScan, tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
-				tn.ArpScan()
-				tn.ScanC()
+				//tn.ArpScan()
+				//tn.ScanC()
 				tn.ScanConfig()
-
-				tn.UniqueifyHosts()
 				tn.ScanPublicInfo()
+				tn.UniqueifyHosts()
+
 			} else {
 				fmt.Println("Network scan disabled")
 			}
