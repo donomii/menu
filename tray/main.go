@@ -73,10 +73,13 @@ func main() {
 		fmt.Println("done")
 	}
 
-	for {
-		tn.UpdatePeers()
-		time.Sleep(time.Second * 5)
-	}
+	go func() {
+
+		for {
+			tn.UpdatePeers()
+			time.Sleep(time.Second * 5)
+		}
+	}()
 
 	for {
 		systray.Run(onReady, onExit)
