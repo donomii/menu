@@ -65,7 +65,8 @@ func main() {
 	//go ScanAll()
 	tn.LoadConfig()
 	LoadInfo()
-
+	ti := time.Second * time.Duration(tn.Configuration.PeerUpdateInterval)
+	fmt.Printf("Updating peers every %v seconds\n", ti.Seconds())
 	go tn.Webserver(tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
 	onExit := func() {
 		//now := time.Now()
@@ -76,6 +77,7 @@ func main() {
 	go func() {
 
 		for {
+			log.Println("Sending hosts list to peers")
 			tn.UpdatePeers()
 			time.Sleep(time.Second * time.Duration(tn.Configuration.PeerUpdateInterval))
 
@@ -126,11 +128,11 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 
 	for _, v := range m.SubNodes {
 		if len(v.SubNodes) > 0 {
-			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), "")
 			AddSub(v, p)
 		} else {
 			//fmt.Printf("Adding submenu item \"%+v\"\n", v)
-			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
+			p := parent.AddSubMenuItem(fmt.Sprintf("%v", v.Name), "")
 			go func(v *menu.Node, p *systray.MenuItem) {
 				for {
 					<-p.ClickedCh

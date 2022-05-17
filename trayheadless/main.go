@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 	"strings"
@@ -64,6 +65,7 @@ func main() {
 	go func() {
 
 		for {
+			log.Println("Sending hosts list to peers")
 			tn.UpdatePeers()
 			time.Sleep(time.Second * time.Duration(tn.Configuration.PeerUpdateInterval))
 		}
