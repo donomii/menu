@@ -65,6 +65,10 @@ func landingPage(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(landingTemplate()))
 }
 
+func Hosts2Json() []byte {
+	out, _ := json.Marshal(Hosts)
+	return out
+}
 func contact(w http.ResponseWriter, req *http.Request) {
 
 	//Get remote ip address from connection
@@ -90,7 +94,7 @@ func contact(w http.ResponseWriter, req *http.Request) {
 	Hosts = append(Hosts, data...)
 	UniqueifyHosts()
 
-	w.Write([]byte(fmt.Sprint("blyat", ip, data)))
+	w.Write(Hosts2Json())
 }
 
 func public_info(w http.ResponseWriter, req *http.Request) {
