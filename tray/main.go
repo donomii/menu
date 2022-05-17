@@ -79,7 +79,7 @@ func main() {
 		for {
 			log.Println("Sending hosts list to peers")
 			tn.UpdatePeers()
-			time.Sleep(time.Second * time.Duration(tn.Configuration.PeerUpdateInterval))
+			time.Sleep(ti)
 
 		}
 	}()

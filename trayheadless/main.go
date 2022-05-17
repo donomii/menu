@@ -62,6 +62,14 @@ func main() {
 	tn.LoadConfig()
 	LoadInfo()
 
+	tn.PortsToScan = append(tn.PortsToScan, tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
+	tn.ArpScan()
+	tn.ScanC()
+	tn.ScanConfig()
+
+	tn.UniqueifyHosts()
+	tn.ScanPublicInfo()
+
 	go func() {
 
 		for {
