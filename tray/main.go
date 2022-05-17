@@ -77,7 +77,8 @@ func main() {
 
 		for {
 			tn.UpdatePeers()
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * time.Duration(tn.Configuration.PeerUpdateInterval))
+
 		}
 	}()
 

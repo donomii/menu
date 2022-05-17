@@ -1,6 +1,3 @@
-//go:build go1.16
-// +build go1.16
-
 package traynetwork
 
 import (
@@ -19,12 +16,13 @@ import (
 var Info InfoStruct
 
 type Config struct {
-	HttpPort         uint
-	StartPagePort    uint
-	Name             string
-	MaxUploadSize    uint
-	Networks         []string
-	ArpCheckInterval int
+	HttpPort           uint
+	StartPagePort      uint
+	Name               string
+	MaxUploadSize      uint
+	Networks           []string
+	ArpCheckInterval   int
+	PeerUpdateInterval int
 }
 
 type Service struct {
@@ -93,7 +91,13 @@ func UpdatePeers() {
 		//Post the hosts list to the host
 		data, _ := json.Marshal(Hosts)
 		log.Printf("Sending hosts list to http://%v:%v/contact", host.Ip, Configuration.HttpPort)
-		http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", strings.NewReader(string(data)))
+		resp, err := http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", strings.NewReader(string(data)))
+		if err != nil {
+			log.Println("Failed to send hosts list to", host.Ip)
+		} else {
+			resp.Body.Close()
+		}
+
 	}
 }
 
