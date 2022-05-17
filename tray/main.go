@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	//"github.com/donomii/menu"
 
@@ -70,6 +71,11 @@ func main() {
 		//now := time.Now()
 		//ioutil.WriteFile(fmt.Sprintf(`on_exit_%d.txt`, now.UnixNano()), []byte(now.String()), 0644)
 		fmt.Println("done")
+	}
+
+	for {
+		tn.UpdatePeers()
+		time.Sleep(time.Second * 5)
 	}
 
 	for {
@@ -136,7 +142,7 @@ func AddSub(m *menu.Node, parent *systray.MenuItem) {
 func addTopLevelMenuItems(m *menu.Node) {
 	//AddSub(apps, appMen)
 	for _, v := range m.SubNodes {
-		p := systray.AddMenuItem(fmt.Sprintf("%v", v.Name), v.Command)
+		p := systray.AddMenuItem(fmt.Sprintf("%v", v.Name), "")
 		go func(v *menu.Node) {
 			for {
 				<-p.ClickedCh

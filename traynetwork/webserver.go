@@ -70,13 +70,27 @@ func landingPage(w http.ResponseWriter, req *http.Request) {
 func contact(w http.ResponseWriter, req *http.Request) {
 	//Get remote ip address from connection
 	ip := req.RemoteAddr
-
+	//Read a json struct from the request body
+	var data []HostService
+	req.ParseForm()
+	body, _ := ioutil.ReadAll(req.Body)
+	json.Unmarshal(body, &data)
+	Hosts = append(Hosts, data...)
+	UniqueifyHosts()
 	w.Write([]byte(fmt.Sprint(ip)))
 }
 
 func public_info(w http.ResponseWriter, req *http.Request) {
 	out, _ := json.Marshal(Info)
 	fmt.Fprintf(w, string(out))
+}
+
+func UpdatePeers() {
+	for _, host := range Hosts {
+		//Post the hosts list to the host
+		data, _ := json.Marshal(Hosts)
+		http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", strings.NewReader(string(data)))
+	}
 }
 
 func Webserver(apiport, startpageport uint) {
