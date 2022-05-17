@@ -66,19 +66,31 @@ func landingPage(w http.ResponseWriter, req *http.Request) {
 }
 
 func contact(w http.ResponseWriter, req *http.Request) {
+
 	//Get remote ip address from connection
 	ip := req.RemoteAddr
 	//Read a json struct from the request body
 	var data []HostService
 	req.ParseForm()
-	body, _ := ioutil.ReadAll(req.Body)
-	json.Unmarshal(body, &data)
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Println("Failed to read request body", err)
+		panic(err)
+	}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		log.Println("Failed to unmarshal request body", err, string(body))
+		panic(err)
+	}
+
 	//Add the remote ip to the list of hosts
 	log.Println("Received contact from:", ip)
 	log.Printf("Received hosts list: %+v\n", data)
 	Hosts = append(Hosts, data...)
 	UniqueifyHosts()
-	w.Write([]byte(fmt.Sprint(ip)))
+
+	w.Write([]byte(fmt.Sprint("blyat", ip, data)))
 }
 
 func public_info(w http.ResponseWriter, req *http.Request) {
@@ -91,9 +103,9 @@ func UpdatePeers() {
 		//Post the hosts list to the host
 		data, _ := json.Marshal(Hosts)
 		log.Printf("Sending hosts list to http://%v:%v/contact", host.Ip, Configuration.HttpPort)
-		resp, err := http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", strings.NewReader(string(data)))
+		resp, err := http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", ioutil.NopCloser(strings.NewReader(string(data))))
 		if err != nil {
-			log.Println("Failed to send hosts list to", host.Ip)
+			log.Println("Failed to send hosts list to", host.Ip, "err:", err)
 		} else {
 			resp.Body.Close()
 		}

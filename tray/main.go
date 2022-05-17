@@ -83,6 +83,9 @@ func main() {
 			for _, v := range tn.Hosts {
 				fmt.Printf("%+v\n", v.Ip)
 			}
+
+			js, _ := json.Marshal(tn.Hosts)
+			log.Print(string(js))
 			tn.UpdatePeers()
 			time.Sleep(ti)
 
