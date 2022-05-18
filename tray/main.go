@@ -174,43 +174,6 @@ func addTopLevelMenuItems(m *menu.Node) {
 	}
 }
 
-func makeNetworkPcMenu(hosts []tn.HostService) (*menu.Node, *menu.Node) {
-	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
-	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
-	for _, host := range hosts {
-		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, host.Ip, "")
-		for _, port := range host.Ports {
-			protocol := "http"
-			if port == 443 {
-				protocol = "https"
-			}
-			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", tn.PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
-		}
-		fmt.Printf("Processing services: %+v\n", host.Services)
-		for _, s := range host.Services {
-			ip := host.Ip
-			if s.Ip != "" {
-				ip = s.Ip
-			}
-			protocol := "http"
-			if s.Port == 443 {
-				protocol = "https"
-			}
-			if !strings.HasPrefix(s.Path, "/") {
-				s.Path = "/" + s.Path
-			}
-			if s.Global {
-				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
-			} else {
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
-			}
-		}
-		out.SubNodes = append(out.SubNodes, h)
-
-	}
-	return out, global
-}
-
 func RecallMenu() *menu.Node {
 	m := menu.Recall()
 	out := menu.MakeNodeLong("Recall", []*menu.Node{}, "", "")
@@ -323,7 +286,7 @@ func onReady() {
 				fmt.Println("Network scan disabled")
 			}
 
-			netmenu, globalmenu := makeNetworkPcMenu(tn.Hosts)
+			netmenu, globalmenu := tn.MakeNetworkPcMenu(tn.Hosts)
 
 			netmenus.SubNodes = append(netmenus.SubNodes, netmenu)
 			netmenus.SubNodes = append(netmenus.SubNodes, globalmenu)

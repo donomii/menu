@@ -117,7 +117,7 @@ func UniqueifyHosts() {
 }
 func ScanPublicInfo() {
 
-	for i, v := range Hosts {
+	for _, v := range Hosts {
 		url := fmt.Sprintf("http://%v:%v/public_info", v.Ip, Configuration.HttpPort)
 		fmt.Println("Public info url:", url)
 		resp, err := http.Get(url)
@@ -130,8 +130,8 @@ func ScanPublicInfo() {
 				err := json.Unmarshal(body, &s)
 				if err == nil {
 					fmt.Printf("Unmarshalled body %v", s)
-					Hosts[i].Services = s.Services
-					Hosts[i].Name = s.Name
+					v.Services = s.Services
+					v.Name = s.Name
 				}
 			}
 		}

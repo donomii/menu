@@ -111,6 +111,23 @@ func UpdatePeers() {
 		if err != nil {
 			log.Println("Failed to send hosts list to", host.Ip, "err:", err)
 		} else {
+			//Read entire body from response
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("Failed to read response body from", host.Ip, "err:", err)
+			} else {
+				log.Println("Received response from", host.Ip, ":", string(body))
+				var h []HostService
+				err = json.Unmarshal(body, &h)
+				if err != nil {
+					log.Println("Failed to unmarshal response body from", host.Ip, "err:", err)
+				} else {
+					log.Println("Received hosts list from", host.Ip, ":", h)
+					Hosts = append(Hosts, h...)
+					UniqueifyHosts()
+				}
+
+			}
 			resp.Body.Close()
 		}
 
@@ -189,7 +206,47 @@ func MakeUserMenu() *menu.Node {
 	json.Unmarshal(b, &usermenu)
 	return &usermenu
 }
+
+func MakeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
+	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
+	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
+	for _, host := range hosts {
+		NodeName := host.Name
+		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, "http://"+host.Ip, "")
+		for _, port := range host.Ports {
+			protocol := "http"
+			if port == 443 {
+				protocol = "https"
+			}
+			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
+		}
+		fmt.Printf("Processing services: %+v\n", host.Services)
+		for _, s := range host.Services {
+			ip := host.Ip
+			if s.Ip != "" {
+				ip = s.Ip
+			}
+			protocol := "http"
+			if s.Port == 443 {
+				protocol = "https"
+			}
+			if !strings.HasPrefix(s.Path, "/") {
+				s.Path = "/" + s.Path
+			}
+			if s.Global {
+				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
+			} else {
+				out.SubNodes = append(out.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v %v", NodeName, s.Name), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
+			}
+		}
+		out.SubNodes = append(out.SubNodes, h)
+
+	}
+	return out, global
+}
+
 func template() string {
+	netmenu, _ := MakeNetworkPcMenu(Hosts)
 	data := `[
         {
             "category": "Social Media",
@@ -204,10 +261,11 @@ func template() string {
     ]`
 
 	var js []bookMarkMenu
-	json.Unmarshal([]byte(data), &js)
+	//json.Unmarshal([]byte(data), &js)
 	apps := menu.AppsMenu()
 	//m := bookMarkMenu{Category: "User menu", Bookmarks: []link{link{Label: "user test", Url: "user link"}}}
 	//newBookmark := link{Label: "test", Url: "test"}
+	js = append(js, menu2jsmenu(netmenu))
 	js = append(js, menu2jsmenu(apps))
 
 	usermenu := MakeUserMenu()
