@@ -215,7 +215,7 @@ func makeWifiMenu(ssids []string) *menu.Node {
 
 func onReady() {
 	m := UberMenu()
-	tn.Hosts = []tn.HostService{}
+	tn.Hosts = []*tn.HostService{}
 	netmenus := menu.Node{Name: "Network", SubNodes: []*menu.Node{}}
 
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)

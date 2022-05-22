@@ -91,7 +91,7 @@ func main() {
 
 var netEntitiesLock sync.Mutex
 
-func makeNetworkPcMenu(hosts []tn.HostService) (*menu.Node, *menu.Node) {
+func makeNetworkPcMenu(hosts []*tn.HostService) (*menu.Node, *menu.Node) {
 	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
 	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
 	for _, host := range hosts {
@@ -169,7 +169,7 @@ func makeWifiMenu(ssids []string) *menu.Node {
 
 func onReady() {
 	m := UberMenu()
-	tn.Hosts = []tn.HostService{}
+	tn.Hosts = []*tn.HostService{}
 	netmenus := menu.Node{Name: "Network", SubNodes: []*menu.Node{}}
 
 	fmt.Printf("%+v, %v\n", m.SubNodes, m)

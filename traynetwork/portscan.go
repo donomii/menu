@@ -28,7 +28,7 @@ type HostService struct {
 	LastSeen time.Time
 }
 
-type HostServiceList []HostService
+type HostServiceList []*HostService
 
 func (a HostServiceList) Len() int           { return len(a) }
 func (a HostServiceList) Less(i, j int) bool { return a[i].Ip < a[j].Ip }
@@ -46,7 +46,7 @@ func Ulimit() int64 {
 
 var GlobalScanSemaphore = semaphore.NewWeighted(5)
 
-var Hosts = []HostService{}
+var Hosts = []*HostService{}
 
 //var PortsToScan = []uint{1, 20, 21, 22, 23, 25, 80, 443, 8000, 8001, 8080, 8081, 8008, 9000, 16001, 16002}
 var PortsToScan = []uint{22, 80, 443}
@@ -58,7 +58,7 @@ func scanPorts() []uint {
 
 var AppendHostsLock = &sync.Mutex{}
 
-func AppendHosts(hs []HostService) {
+func AppendHosts(hs []*HostService) {
 	AppendHostsLock.Lock()
 	defer AppendHostsLock.Unlock()
 	Hosts = append(Hosts, hs...)
@@ -97,7 +97,7 @@ func ScanConfig() {
 }
 
 func UniqueifyHosts() {
-	temp := map[string]HostService{}
+	temp := map[string]*HostService{}
 	for _, v := range Hosts {
 		if _, ok := temp[v.Ip]; !ok {
 			temp[v.Ip] = v
@@ -122,16 +122,18 @@ func ScanPublicInfo() {
 		fmt.Println("Public info url:", url)
 		resp, err := http.Get(url)
 		if err == nil {
-			fmt.Println("Got response")
+			log.Println("Got response")
 			body, err := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
 			if err == nil {
-				fmt.Println("Got body")
+				log.Println("Got body")
 				var s InfoStruct
 				err := json.Unmarshal(body, &s)
 				if err == nil {
 					fmt.Printf("Unmarshalled body %v", s)
 					v.Services = s.Services
 					v.Name = s.Name
+					v.LastSeen = time.Now()
 				}
 			}
 		}
@@ -229,7 +231,7 @@ func CidrHosts(cidr string) ([]string, error) {
 	}
 }
 
-func scanNetwork(cidr string, ports []uint) (out []HostService) {
+func scanNetwork(cidr string, ports []uint) (out []*HostService) {
 	var wg sync.WaitGroup
 	hosts, _ := CidrHosts(cidr)
 	for _, v := range hosts {
@@ -242,7 +244,7 @@ func scanNetwork(cidr string, ports []uint) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 5000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts, nil, "", time.Now()})
+				out = append(out, &HostService{v, openPorts, nil, "", time.Now()})
 			}
 			wg.Done()
 		}(v)
@@ -251,7 +253,7 @@ func scanNetwork(cidr string, ports []uint) (out []HostService) {
 	return out
 }
 
-func scanIps(hosts []string, ports []uint) (out []HostService) {
+func scanIps(hosts []string, ports []uint) (out []*HostService) {
 	var wg sync.WaitGroup
 
 	for _, v := range hosts {
@@ -264,7 +266,7 @@ func scanIps(hosts []string, ports []uint) (out []HostService) {
 		go func(v string) {
 			openPorts := ps.ScanList(1, 9000, 3000*time.Millisecond, ports)
 			if len(openPorts) > 0 {
-				out = append(out, HostService{v, openPorts, nil, "", time.Now()})
+				out = append(out, &HostService{v, openPorts, nil, "", time.Now()})
 			}
 			wg.Done()
 		}(v)

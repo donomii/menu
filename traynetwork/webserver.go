@@ -8,7 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	//"net/url"
 	"strings"
+	"time"
 
 	menu ".."
 )
@@ -74,7 +76,7 @@ func contact(w http.ResponseWriter, req *http.Request) {
 	//Get remote ip address from connection
 	ip := req.RemoteAddr
 	//Read a json struct from the request body
-	var data []HostService
+	var data []*HostService
 	req.ParseForm()
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -91,6 +93,7 @@ func contact(w http.ResponseWriter, req *http.Request) {
 	//Add the remote ip to the list of hosts
 	log.Println("Received contact from:", ip)
 	log.Printf("Received hosts list: %+v\n", data)
+
 	Hosts = append(Hosts, data...)
 	UniqueifyHosts()
 
@@ -111,14 +114,15 @@ func UpdatePeers() {
 		if err != nil {
 			log.Println("Failed to send hosts list to", host.Ip, "err:", err)
 		} else {
+
 			//Read entire body from response
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				log.Println("Failed to read response body from", host.Ip, "err:", err)
 			} else {
 				log.Println("Received response from", host.Ip, ":", string(body))
-				var h []HostService
-				err = json.Unmarshal(body, &h)
+				var h []*HostService
+				err = json.Unmarshal(body, h)
 				if err != nil {
 					log.Println("Failed to unmarshal response body from", host.Ip, "err:", err)
 				} else {
@@ -128,10 +132,12 @@ func UpdatePeers() {
 				}
 
 			}
+
 			resp.Body.Close()
 		}
 
 	}
+	ScanPublicInfo()
 }
 
 func Webserver(apiport, startpageport uint) {
@@ -193,9 +199,23 @@ type bookMarkMenu struct {
 
 func menu2jsmenu(m *menu.Node) bookMarkMenu {
 	l := []link{}
+
 	for _, item := range m.SubNodes {
-		l = append(l, link{Label: item.Name, Url: strings.ReplaceAll(strings.ReplaceAll(item.Command, "\"", "'"), "\\", "/")})
+
+		urlstr := strings.ReplaceAll(strings.ReplaceAll(item.Command, "\"", "'"), "\\", "/")
+		if !strings.HasPrefix(item.Command, "http") {
+
+			urlstr = fmt.Sprintf("http://localhost:%v/command/%v", Configuration.HttpPort, urlstr)
+		}
+
+		l = append(l, link{
+			Label: item.Name,
+			Url:   urlstr,
+		},
+		)
 	}
+
+	log.Printf("JSON for webpage: %v\n", l)
 	return bookMarkMenu{Category: m.Name, Bookmarks: l}
 
 }
@@ -207,40 +227,45 @@ func MakeUserMenu() *menu.Node {
 	return &usermenu
 }
 
-func MakeNetworkPcMenu(hosts []HostService) (*menu.Node, *menu.Node) {
+func MakeNetworkPcMenu(hosts []*HostService) (*menu.Node, *menu.Node) {
+	log.Printf("Hosts: %v\n", hosts)
 	out := menu.MakeNodeLong("Network", []*menu.Node{}, "", "")
 	global := menu.MakeNodeLong("Global Services", []*menu.Node{}, "", "")
 	for _, host := range hosts {
-		NodeName := host.Name
-		h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, "http://"+host.Ip, "")
-		for _, port := range host.Ports {
-			protocol := "http"
-			if port == 443 {
-				protocol = "https"
-			}
-			h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
-		}
-		fmt.Printf("Processing services: %+v\n", host.Services)
-		for _, s := range host.Services {
-			ip := host.Ip
-			if s.Ip != "" {
-				ip = s.Ip
-			}
-			protocol := "http"
-			if s.Port == 443 {
-				protocol = "https"
-			}
-			if !strings.HasPrefix(s.Path, "/") {
-				s.Path = "/" + s.Path
-			}
-			if s.Global {
-				global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
-			} else {
-				out.SubNodes = append(out.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v %v", NodeName, s.Name), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
-			}
-		}
-		out.SubNodes = append(out.SubNodes, h)
+		//If we have seen the host in the last 10 minutes, add it to the menu
+		if host.LastSeen.Add(10 * time.Minute).After(time.Now()) {
 
+			NodeName := host.Name
+			h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, "http://"+host.Ip, "")
+			for _, port := range host.Ports {
+				protocol := "http"
+				if port == 443 {
+					protocol = "https"
+				}
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
+			}
+			fmt.Printf("Processing services: %+v\n", host.Services)
+			for _, s := range host.Services {
+				ip := host.Ip
+				if s.Ip != "" {
+					ip = s.Ip
+				}
+				protocol := "http"
+				if s.Port == 443 {
+					protocol = "https"
+				}
+				if !strings.HasPrefix(s.Path, "/") {
+					s.Path = "/" + s.Path
+				}
+				if s.Global {
+					global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
+				} else {
+					out.SubNodes = append(out.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v %v", NodeName, s.Name), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
+				}
+			}
+			out.SubNodes = append(out.SubNodes, h)
+
+		}
 	}
 	return out, global
 }
@@ -270,12 +295,14 @@ func template() string {
 
 	usermenu := MakeUserMenu()
 	js = append(js, menu2jsmenu(usermenu))
+	log.Printf("vals for webpage: %v\n", js)
 
 	datab, err := json.Marshal(js)
 	if err != nil {
 		panic(err)
 	}
 	data = string(datab)
+	log.Printf("\n\nJSON for webpage: %v\n", data)
 
 	jsText := `{
     "bookmarks": TEMPLATE,
