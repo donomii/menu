@@ -251,7 +251,7 @@ func onReady() {
 			procAttr.Dir = os.Getenv("PWD")
 			procAttr.Env = os.Environ()
 			exe, _ := os.Executable()
-			syscall.ForkExec(exe, os.Args, procAttr)
+			ForkExec(exe, os.Args, procAttr)
 		}
 		systray.Quit()
 		fmt.Println("Systray stopped")
