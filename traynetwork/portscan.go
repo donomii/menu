@@ -99,15 +99,16 @@ func ScanConfig() {
 func UniqueifyHosts() {
 	temp := map[string]*HostService{}
 	for _, v := range Hosts {
-		if _, ok := temp[v.Ip]; !ok {
-			temp[v.Ip] = v
-		} else {
-			if v.LastSeen.After(temp[v.Ip].LastSeen) {
+		if v != nil { //Who is putting nils on the host list?
+			if _, ok := temp[v.Ip]; !ok {
 				temp[v.Ip] = v
+			} else {
+				if v.LastSeen.After(temp[v.Ip].LastSeen) {
+					temp[v.Ip] = v
+				}
 			}
 		}
 	}
-
 	out := HostServiceList{}
 	for _, v := range temp {
 		out = append(out, v)

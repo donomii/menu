@@ -67,6 +67,9 @@ func main() {
 			tn.PortsToScan = append(tn.PortsToScan, tn.Configuration.HttpPort, tn.Configuration.StartPagePort)
 			//tn.ArpScan()
 			//tn.ScanC()
+			for _, host := range tn.Configuration.KnownPeers {
+				tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
+			}
 			tn.ScanConfig()
 
 			tn.ScanPublicInfo()

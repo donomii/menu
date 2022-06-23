@@ -64,6 +64,10 @@ func main() {
 	os.Chdir(baseDir)
 	//go ScanAll()
 	tn.LoadConfig()
+	for _, host := range tn.Configuration.KnownPeers {
+		tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
+		log.Printf("Added known peer %v\n", host)
+	}
 	LoadInfo()
 	ti := time.Second * time.Duration(tn.Configuration.PeerUpdateInterval)
 	fmt.Printf("Updating peers every %v seconds\n", ti.Seconds())

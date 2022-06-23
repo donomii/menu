@@ -23,6 +23,7 @@ type Config struct {
 	Name               string
 	MaxUploadSize      uint
 	Networks           []string
+	KnownPeers         []string
 	ArpCheckInterval   int
 	PeerUpdateInterval int
 }
@@ -52,6 +53,10 @@ func LoadConfig() {
 	err = json.Unmarshal(data, &Configuration)
 	if err != nil {
 		panic(err)
+	}
+	for _, host := range Configuration.KnownPeers {
+		Hosts = append(Hosts, &HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
+		log.Printf("Added known peer %v\n", host)
 	}
 	fmt.Printf("Loaded config: %+v\n", Configuration)
 }
@@ -106,6 +111,11 @@ func public_info(w http.ResponseWriter, req *http.Request) {
 }
 
 func UpdatePeers() {
+
+	for _, host := range Configuration.KnownPeers {
+		Hosts = append(Hosts, &HostService{Ip: host, Name: host, Ports: []uint{16002}})
+		log.Printf("Added known peer %v\n", host)
+	}
 	for _, host := range Hosts {
 		//Post the hosts list to the host
 		data, _ := json.Marshal(Hosts)
@@ -122,11 +132,11 @@ func UpdatePeers() {
 			} else {
 				log.Println("Received response from", host.Ip, ":", string(body))
 				var h []*HostService
-				err = json.Unmarshal(body, h)
+				err = json.Unmarshal(body, &h)
 				if err != nil {
 					log.Println("Failed to unmarshal response body from", host.Ip, "err:", err)
 				} else {
-					log.Println("Received hosts list from", host.Ip, ":", h)
+					log.Printf("Received hosts list from%v: %+v", host.Ip, h)
 					Hosts = append(Hosts, h...)
 					UniqueifyHosts()
 				}
@@ -183,8 +193,10 @@ func fillTemplate(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	str := strings.Replace(string(base), "TEMPLATE", template(), -1)
-	fmt.Fprintf(w, str)
+	tem := template()
+	tem = strings.ReplaceAll(tem, "\"", "\\\"")
+	str := strings.Replace(string(base), "TEMPLATE", tem, -1)
+	fmt.Fprint(w, str)
 }
 
 type link struct {
@@ -210,7 +222,7 @@ func menu2jsmenu(m *menu.Node) bookMarkMenu {
 
 		l = append(l, link{
 			Label: item.Name,
-			Url:   urlstr,
+			Url:   item.Command,
 		},
 		)
 	}
