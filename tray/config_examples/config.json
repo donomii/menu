@@ -1,8 +1,15 @@
 {
- "Name": "Unused",
-"HttpPort": 16002,
-"StartPagePort": 16001,
-"MaxUploadSize": 100000000,
- "Networks": ["192.168.0.0/24", "192.168.1.0/24", "10.0.0.0/24", "192.168.178.0/24"],
- "ArpCheckInterval": 500000000
+    "Name": "Unused",
+    "HttpPort": 16002,
+    "StartPagePort": 16001,
+    "MaxUploadSize": 100000000,
+    "Networks": [
+        "192.168.0.0/24",
+        "192.168.1.0/24",
+        "10.0.0.0/24",
+        "192.168.178.0/24"
+    ],
+    "KnownPeers": [],
+    "ArpCheckInterval": 500000000,
+    "PeerUpdateInterval": 50
 }
