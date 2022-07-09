@@ -2,9 +2,9 @@
 package main
 
 import (
-	"github.com/donomii/glim"
-
 	"fmt"
+	"github.com/donomii/glim"
+	"runtime/debug"
 
 	"log"
 )
@@ -14,6 +14,7 @@ var foreColour, backColour *glim.RGBA
 func renderEd(w, h int) {
 	defer func() {
 		if r := recover(); r != nil {
+			debug.PrintStack()
 			fmt.Println("Recovered in renderEd", r)
 		}
 	}()

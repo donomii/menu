@@ -113,30 +113,30 @@ func public_info(w http.ResponseWriter, req *http.Request) {
 func UpdatePeers() {
 
 	for _, host := range Configuration.KnownPeers {
-		Hosts = append(Hosts, &HostService{Ip: host, Name: host, Ports: []uint{16002}})
+		Hosts = append(Hosts, &HostService{Ip: host, Name: "UncontactablePeer", Ports: []uint{16002}})
 		log.Printf("Added known peer %v\n", host)
 	}
 	for _, host := range Hosts {
 		//Post the hosts list to the host
 		data, _ := json.Marshal(Hosts)
-		log.Printf("Sending hosts list to http://%v:%v/contact", host.Ip, Configuration.HttpPort)
-		resp, err := http.Post(fmt.Sprintf("http://%v:%v/contact", host.Ip, Configuration.HttpPort), "application/json", ioutil.NopCloser(strings.NewReader(string(data))))
+		log.Printf("Sending hosts list to http://%v:%v/contact", FormatHttpIp(host.Ip), Configuration.HttpPort)
+		resp, err := http.Post(fmt.Sprintf("http://%v:%v/contact", FormatHttpIp(host.Ip), Configuration.HttpPort), "application/json", ioutil.NopCloser(strings.NewReader(string(data))))
 		if err != nil {
-			log.Println("Failed to send hosts list to", host.Ip, "err:", err)
+			log.Println("Failed to send hosts list to", FormatHttpIp(host.Ip), "err:", err)
 		} else {
 
 			//Read entire body from response
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				log.Println("Failed to read response body from", host.Ip, "err:", err)
+				log.Println("Failed to read response body from", FormatHttpIp(host.Ip), "err:", err)
 			} else {
-				log.Println("Received response from", host.Ip, ":", string(body))
+				log.Println("Received response from", FormatHttpIp(host.Ip), ":", string(body))
 				var h []*HostService
 				err = json.Unmarshal(body, &h)
 				if err != nil {
-					log.Println("Failed to unmarshal response body from", host.Ip, "err:", err)
+					log.Println("Failed to unmarshal response body from", FormatHttpIp(host.Ip), "err:", err)
 				} else {
-					log.Printf("Received hosts list from%v: %+v", host.Ip, h)
+					log.Printf("Received hosts list from %v: %+v", FormatHttpIp(host.Ip), h)
 					Hosts = append(Hosts, h...)
 					UniqueifyHosts()
 				}
@@ -238,6 +238,13 @@ func MakeUserMenu() *menu.Node {
 	json.Unmarshal(b, &usermenu)
 	return &usermenu
 }
+func FormatHttpIp(ip string) string {
+	if strings.Contains(ip, ":") {
+		return "[" + ip + "]"
+	} else {
+		return ip
+	}
+}
 
 func MakeNetworkPcMenu(hosts []*HostService) (*menu.Node, *menu.Node) {
 	log.Printf("Hosts: %v\n", hosts)
@@ -248,13 +255,13 @@ func MakeNetworkPcMenu(hosts []*HostService) (*menu.Node, *menu.Node) {
 		if host.LastSeen.Add(10 * time.Minute).After(time.Now()) {
 
 			NodeName := host.Name
-			h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, "http://"+host.Ip, "")
+			h := menu.MakeNodeLong(host.Ip+"/"+host.Name, []*menu.Node{}, "http://"+FormatHttpIp(host.Ip), "")
 			for _, port := range host.Ports {
 				protocol := "http"
 				if port == 443 {
 					protocol = "https"
 				}
-				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, host.Ip, port), ""))
+				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, FormatHttpIp(host.Ip), port), ""))
 			}
 			fmt.Printf("Processing services: %+v\n", host.Services)
 			for _, s := range host.Services {
@@ -270,9 +277,9 @@ func MakeNetworkPcMenu(hosts []*HostService) (*menu.Node, *menu.Node) {
 					s.Path = "/" + s.Path
 				}
 				if s.Global {
-					global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, ip, s.Port, s.Path), ""))
+					global.SubNodes = append(global.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", s.Name, s.Port), nil, fmt.Sprintf("%v://%v:%v%v", s.Protocol, FormatHttpIp(ip), s.Port, s.Path), ""))
 				} else {
-					out.SubNodes = append(out.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v %v", NodeName, s.Name), nil, fmt.Sprintf("%v://%v:%v%v", protocol, ip, s.Port, s.Path), ""))
+					out.SubNodes = append(out.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v %v", NodeName, s.Name), nil, fmt.Sprintf("%v://%v:%v%v", protocol, FormatHttpIp(ip), s.Port, s.Path), ""))
 				}
 			}
 			out.SubNodes = append(out.SubNodes, h)

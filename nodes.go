@@ -2,6 +2,7 @@
 package menu
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"text/template"
-	"bytes"
 
 	"github.com/atotto/clipboard"
 	"github.com/emersion/go-autostart"
@@ -432,8 +432,14 @@ func Recall() [][]string {
 	out := [][]string{}
 	for _, v := range lines {
 		bits := strings.Split(v, "|")
+		if len(bits) < 2 {
+			//Vi and friends add a blank line to the end of the file
+			//fmt.Printf("Failed to parse line: %v\n", v)
+			continue
+		}
 		name := bits[0]
 		name = strings.TrimSpace(name)
+
 		command := bits[1]
 		command = strings.TrimSpace(command)
 		entry := []string{name, command}
@@ -442,20 +448,23 @@ func Recall() [][]string {
 	}
 	return out
 }
+
 type cmdSubs struct {
-	AppDir string
+	AppDir    string
 	ConfigDir string
-	Cwd    string
-	Command string
+	Cwd       string
+	Command   string
 }
+
 func Activate(value string) bool {
 	result := ""
 	log.Println("selected for activation:", value)
 
-
-	subs := cmdSubs{goof.ExecutablePath(),goof.HomePath(".umh/"), goof.Cwd(), value}
+	subs := cmdSubs{goof.ExecutablePath(), goof.HomePath(".umh/"), goof.Cwd(), value}
 	tmpl, err := template.New("test").Parse(value)
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 	var s string
 	buf := bytes.NewBufferString(s)
 	err = tmpl.Execute(buf, subs)
@@ -470,6 +479,7 @@ func Activate(value string) bool {
 			cwd, _ := os.Getwd()
 			exePath = cwd + "/" + "tray.exe"
 		}
+
 		switch cmd {
 		case "RunAtStartup":
 			app := &autostart.App{
@@ -480,6 +490,11 @@ func Activate(value string) bool {
 			app.Enable()
 		case "Exit":
 			os.Exit(0)
+		case "Reload":
+			RecallCache = nil
+		default:
+			log.Println("unsupported command when trying to run", value)
+
 		}
 	}
 

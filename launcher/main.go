@@ -10,9 +10,9 @@ import (
 
 	"time"
 
+	menu ".."
 	"github.com/donomii/glim"
 	"github.com/donomii/goof"
-	"github.com/donomii/menu"
 
 	"io/ioutil"
 	"log"
@@ -42,6 +42,8 @@ var window *glfw.Window
 var wantWindow = true
 var createWin = true
 var preserveWindow = true
+var glfwInitialized = false
+var quitAfter = false
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -64,10 +66,11 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 		ActiveBufferInsert(ed, "\n?> ")
 		ActiveBufferInsert(ed, input)
 		ActiveBufferInsert(ed, "\n\n")
-		pred, predAction = menu.Predict([]byte(input))
+		if len(input) > 0 {
+			pred, predAction = menu.Predict([]byte(input))
 
-		log.Printf("predictions %#v, %#v\n", pred, predAction)
-		if len(pred) > 0 {
+			log.Printf("predictions %#v, %#v\n", pred, predAction)
+
 			pred = append(pred, "Menu Settings")
 			predAction = append(predAction, "Menu Settings") //FIXME make this a file:// url
 			for _, v := range Seq(selected, len(pred)-1) {
@@ -87,6 +90,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 					ActiveBufferInsert(ed, "        "+pred[v]+"\n")
 				}
 			}
+
 		}
 	} else {
 		ActiveBufferInsert(ed, "Loading\n\n")
@@ -94,7 +98,73 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 	}
 }
 
+func doKeyPress(action string) {
+	switch action {
+	case "HideWindow":
+		ForceHide()
+
+	case "SelectPrevious":
+		selected -= 1
+		if selected < 0 {
+			selected = 0
+		}
+
+	case "SelectNext":
+		selected += 1
+		if selected > len(pred)-1 {
+			selected = len(pred) - 1
+		}
+
+	case "Backspace":
+		if len(input) > 0 {
+			input = input[0 : len(input)-1]
+		}
+
+	case "Activate":
+		if len(pred) > 0 {
+			status = "Loading " + pred[selected] + predAction[selected]
+			mode = "loading"
+			update = true
+			log.Printf("Activating %v\n", pred[selected])
+			go func(thread_selected int) {
+				value := predAction[thread_selected]
+				if strings.HasPrefix(value, "internal://") {
+					cmd := strings.TrimPrefix(value, "internal://")
+					if cmd == "EditRecallFile" {
+						recallFile := menu.RecallFilePath()
+
+						log.Println("Opening for edit: ", recallFile)
+
+						//goof.QC([]string{"open", recallFile})
+						go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
+						go goof.Command("/usr/bin/open", []string{recallFile})
+					}
+				}
+
+				menu.Activate(value)
+
+				ForceHide()
+
+				return
+
+			}(selected)
+			//FIXME some kind of transition here?
+			mode = "searching"
+			input = ""
+			status = ""
+			update = true
+			selected = 0
+		} else {
+			toggleWindow()
+		}
+
+	}
+
+}
 func handleKeys(window *glfw.Window) {
+	EscapeKeyCode := 256
+	MacEscapeKeyCode := 53
+
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 
 		log.Printf("Got key %c,%v,%v,%v", key, key, mods, action)
@@ -107,77 +177,28 @@ func handleKeys(window *glfw.Window) {
 		if action > 0 {
 
 			//ESC
-			if key == 256 {
+			if key == glfw.Key(EscapeKeyCode) || key == glfw.Key(MacEscapeKeyCode) {
 				//os.Exit(0)
 				log.Println("Escape pressed")
-				toggleWindow()
+				doKeyPress("HideWindow")
 				return
 			}
 
 			if key == 265 {
-				selected -= 1
-				if selected < 0 {
-					selected = 0
-				}
+				doKeyPress("SelectPrevious")
 			}
 
 			if key == 264 {
-				selected += 1
-				if selected > len(pred)-1 {
-					selected = len(pred) - 1
-				}
+				doKeyPress("SelectNext")
 			}
 
 			if key == 257 {
-				if len(pred) > 0 {
-					status = "Loading " + pred[selected] + predAction[selected]
-					mode = "loading"
-					update = true
-					go func(thread_selected int) {
-						if pred[thread_selected] == "Menu Settings" {
-							recallFile := menu.RecallFilePath()
-
-							log.Println("Opening for edit: ", recallFile)
-
-							//goof.QC([]string{"open", recallFile})
-							go goof.Command("c:\\Windows\\System32\\cmd.exe", []string{"/c", "start", recallFile})
-							go goof.Command("/usr/bin/open", []string{recallFile})
-						}
-						value := predAction[thread_selected]
-						if strings.HasPrefix(value, "internal://") {
-							cmd := strings.TrimPrefix(value, "internal://")
-
-							switch cmd {
-							case "exit":
-								os.Exit(0)
-							case "reload":
-								menu.RecallCache = nil
-							default:
-								log.Println("unsupported command when trying to run internal://")
-							}
-						}
-						menu.Activate(predAction[thread_selected])
-
-						toggleWindow()
-
-						return
-						//os.Exit(0)
-					}(selected)
-					//FIXME some kind of transition here?
-					mode = "searching"
-					input = ""
-					status = ""
-					update = true
-					selected = 0
-				} else {
-					toggleWindow()
-				}
+				doKeyPress("Activate")
 			}
 
 			if key == 259 {
-				if len(input) > 0 {
-					input = input[0 : len(input)-1]
-				}
+				doKeyPress("Backspace")
+
 			}
 
 			UpdateBuffer(ed, input)
@@ -196,18 +217,44 @@ func handleKeys(window *glfw.Window) {
 
 	})
 }
+
+//Pushes an existing window to the front.  Window must exist.
 func popWindow() {
 	log.Println("Popping window")
 	update = true
 	window.Restore()
 	window.Show()
-
+	window.Focus()
 }
+
+//Hides an existing window.  Window must exist.
 func hideWindow() {
 	log.Println("Hiding window")
 	window.Iconify()
 	window.Hide()
+}
 
+//If the window exists, pop it to the front.  Otherwise create it, then pop it.
+func ForceFront() {
+	if preserveWindow {
+		popWindow()
+	} else {
+		update = true
+		createWin = true
+	}
+}
+
+//If the window exists, hide it.  Otherwise create it, then hide it.
+//If preserveWindow is not true, the program will quit.
+func ForceHide() {
+	if preserveWindow {
+		log.Println("Hiding window")
+		hideWindow()
+	} else {
+		log.Println("Exiting")
+		update = true
+		createWin = false
+	}
 }
 func toggleWindow() {
 	log.Println("Toggling window")
@@ -224,6 +271,7 @@ func toggleWindow() {
 		if preserveWindow {
 			hideWindow()
 		} else {
+			//This exits the program.
 			createWin = false
 		}
 	}
@@ -234,6 +282,7 @@ func main() {
 	}
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
+	flag.BoolVar(&quitAfter, "quit-after", false, "Quit after command or focus loss")
 	flag.Parse()
 
 	go WatchKeys()
@@ -244,10 +293,16 @@ func main() {
 	}
 
 	for {
+
 		if createWin {
 			createWindow()
 		}
-		time.Sleep(5 * time.Millisecond)
+		if quitAfter {
+			fmt.Println("Quitting after window close")
+			os.Exit(0)
+		}
+		time.Sleep(10 * time.Millisecond)
+
 	}
 }
 
@@ -257,7 +312,14 @@ func createWindow() {
 	if err := glfw.Init(); err != nil {
 		panic("failed to initialize glfw: " + err.Error())
 	}
-	defer glfw.Terminate()
+
+	defer func() {
+		glfwInitialized = false
+		glfw.Terminate()
+		if quitAfter {
+			os.Exit(0)
+		}
+	}()
 
 	log.Println("Setup window")
 	monitor := glfw.GetPrimaryMonitor()
@@ -269,7 +331,11 @@ func createWindow() {
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 	glfw.WindowHint(glfw.Decorated, glfw.False)
-	//glfw.WindowHint(glfw.GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE)
+	glfw.WindowHint(glfw.Floating, glfw.True)
+
+	//glfw.WindowHint(glfw.AutoIconify, glfw.True)
+
+	//glfw.WindowHint(glfw.TransparentFramebuffer, 1)
 	log.Println("Make window", edWidth, "x", edHeight)
 	var err error
 	window, err = glfw.CreateWindow(edWidth, edHeight, "Menu", nil, nil)
@@ -327,6 +393,7 @@ func createWindow() {
 	frames := 0
 	UpdateBuffer(ed, input)
 	log.Println("Start rendering")
+	glfwInitialized = true
 	for !window.ShouldClose() && createWin {
 		time.Sleep(35 * time.Millisecond)
 		frames++
@@ -344,11 +411,24 @@ func createWindow() {
 			update = false
 		}
 		glfw.PollEvents()
+		if glfwInitialized {
+			hasFocus := glfw.GetCurrentContext().GetAttrib(glfw.Focused)
+
+			if hasFocus == 0 {
+				log.Println("Window lost focus")
+				createWin = false
+			}
+		}
 	}
 	log.Println("Normal glfw shutdown")
+	if quitAfter {
+		fmt.Println("Quitting after window close")
+		os.Exit(0)
+	}
 }
 
 func blit(pix []uint8, w, h int) {
+	gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()

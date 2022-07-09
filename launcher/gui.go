@@ -2,12 +2,12 @@
 package main
 
 import (
-	"math/rand"
-	"github.com/donomii/glim"
-
 	"fmt"
-
 	"log"
+	"math/rand"
+	"runtime/debug"
+
+	"github.com/donomii/glim"
 )
 
 var foreColour, backColour *glim.RGBA
@@ -15,7 +15,9 @@ var foreColour, backColour *glim.RGBA
 func renderEd(w, h int) {
 	defer func() {
 		if r := recover(); r != nil {
+			debug.PrintStack()
 			fmt.Println("Recovered in renderEd", r)
+
 		}
 	}()
 	left := 0
@@ -26,18 +28,18 @@ func renderEd(w, h int) {
 
 		size := w * h * 4
 		log.Println("Clearing", size, "bytes(", w, "x", h, ")")
-		backColour = &glim.RGBA{0, 0, 0, 255}
-		patternColour := &glim.RGBA{128, 100,100, 255}
+		backColour = &glim.RGBA{0, 0, 0, 0}
+		patternColour := &glim.RGBA{128, 100, 100, 255}
 		foreColour = &glim.RGBA{255, 255, 255, 255}
 		num := rand.Intn(100)
 		log.Println("Background rand:", num)
 		for i := 0; i < size; i = i + 4 {
 			var Colour *glim.RGBA
-			if ((i^int(i/w))%3==0){
+			if (i^int(i/w))%3 == 0 {
 				//if !(int(math.Pow(float64(i), float64(int(i/w))))%9>0){
-				Colour=patternColour
-			}else {
-				Colour=backColour
+				Colour = patternColour
+			} else {
+				Colour = backColour
 			}
 			pic[i] = ((*Colour)[0])
 			pic[i+1] = ((*Colour)[1])

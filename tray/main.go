@@ -65,7 +65,7 @@ func main() {
 	//go ScanAll()
 	tn.LoadConfig()
 	for _, host := range tn.Configuration.KnownPeers {
-		tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
+		tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: "UncontactablePeer", Ports: []uint{16002}, LastSeen: time.Now()})
 		log.Printf("Added known peer %v\n", host)
 	}
 	LoadInfo()

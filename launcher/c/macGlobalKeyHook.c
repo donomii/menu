@@ -26,7 +26,7 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
     // The incoming keycode.
     CGKeyCode keycode = (CGKeyCode)CGEventGetIntegerValueField( event, kCGKeyboardEventKeycode);
 
-    printf("Key: %i\n", keycode);
+    //printf("Key: %i\n  Calling HandleKey\n", keycode);
     
     if (HandleKey((int) keycode)) {
         return NULL;

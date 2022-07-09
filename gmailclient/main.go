@@ -127,7 +127,8 @@ func AddAppNodes(n *Node) *Node {
 
 func gitHistoryMenu() *menu.Node {
 	node := menu.MakeNodeShort("previous git commands", []*menu.Node{})
-	menu.AddTextNodesFromString(node, goof.Grep("git", goof.QC([]string{"fish", "-c", "history"})))
+	str, _ := goof.QC([]string{"fish", "-c", "history"})
+	menu.AddTextNodesFromString(node, goof.Grep("git", str))
 	return node
 }
 

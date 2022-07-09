@@ -68,7 +68,7 @@ func main() {
 			//tn.ArpScan()
 			//tn.ScanC()
 			for _, host := range tn.Configuration.KnownPeers {
-				tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
+				tn.Hosts = append(tn.Hosts, &tn.HostService{Ip: host, Name: "UncontactablePeer", Ports: []uint{16002}, LastSeen: time.Now()})
 			}
 			tn.ScanConfig()
 
