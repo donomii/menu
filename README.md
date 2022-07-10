@@ -1,8 +1,10 @@
 # menu
 
-A cross-platform experimental system for displaying user menus, that turned into a popup launcher and more.
+Well, this got a little bit out of control.
 
-There are currently three programs available: a tray menu, a popup menu, and a popup launcher.
+A cross-platform user menu, that turned into a popup launcher and more.
+
+There are currently three programs available: a system tray menu, a popup menu, and a popup launcher.
 
 # Features
 
@@ -10,17 +12,17 @@ UMH has picked up a lot of different abilities.  It can scan your network for ot
 
 # Tray menu
 
-The tray menu sits in the system tray(Windows) or the menu bar (Mac).  It displays the user-defined menu, as well as several generated menus, like the Applications menu, and the network services menu.
+The tray menu sits in the system tray(Windows) or the menu bar (Mac).  It displays the user-defined menu, as well as several auto-generated menus, like the Applications menu, and the network services menu.
 
 # Popup Menu
 
-Similar to the tray menu, but you press a hotkey (F12), and the menu appears in the center of the screen.
+Similar to the tray menu, but the menu appears in the center of the screen.
 
 # Popup launcher
 
-The popup launcher works similar to the built-in search on macosx.  Press a button (the spotlight button on mac, CAPS LOCK on windows), and the launcher will appear.  Type your search, then use the up and down arrows to select your choice.
+The popup launcher works similar to the built-in search on macosx.  Press a button (F12), and the launcher will appear.  Type your search, then use the up and down arrows to select your choice.
 
-The options that appear in the popup launcher are NOT automatically generated, they come from a file (~/.menu.recall.text).  You can always find this file by searching for "menu settings", then selecting that option from the list.  
+The options that appear in the popup launcher are not all automatically generated, they come from a file (~/.menu.recall.text).  You can always find this file by searching for "Edit Recall Menu", then selecting that option from the list.  
 
 The different ways to launch a file or program are described below.
 
@@ -38,7 +40,7 @@ Use the provided build scripts, build.bat and build.sh
 
 # Command format
 
-UMH uses urls where ever possible, and adds its own extensions.  The common supported ones are:
+UMH uses urls where ever possible, and adds its own extensions.  These URLs can be used in the UMH system menu, and in the ~/.menu.recall.text file.
 
 - http://,https:// - Will open a web browser to this url
 - shell:// - will run a shell command exactly as written.  The shell will be cmd.exe or bash.
@@ -53,3 +55,13 @@ You can also substitute in a few variables using the Go template syntax e.g. {{.
 	ConfigDir   The config and data directory, usually "~/.umh"
 	Cwd         The current operations directory, as stored in "~/.umh/cwd"
 	Command     The command that is currently being run
+
+## ~/.menu.recall.text
+
+The recall file holds your custom commands.  You can always find this file to edit by typing "Edit Recall Menu" into the Launcher, and then selecting the option that appears.
+
+The file format looks like this
+
+	Some text that you can search for | url://something that should happen
+
+e.g.

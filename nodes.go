@@ -481,6 +481,12 @@ func Activate(value string) bool {
 		}
 
 		switch cmd {
+		case "EditRecallFile":
+			log.Println("Editing recall file")
+			//Get user directory
+			homedir := goof.HomeDirectory()
+			filePath := homedir + "/.menu.recall.txt"
+			value = "file://" + filePath
 		case "RunAtStartup":
 			app := &autostart.App{
 				Name:        "umhtray",
