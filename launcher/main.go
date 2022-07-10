@@ -44,6 +44,7 @@ var createWin = true
 var preserveWindow = true
 var glfwInitialized = false
 var quitAfter = false
+var spawn_subprocess = false
 
 func Seq(min, max int) []int {
 	size := max - min + 1
@@ -101,6 +102,7 @@ func UpdateBuffer(ed *GlobalConfig, input string) {
 func doKeyPress(action string) {
 	switch action {
 	case "HideWindow":
+		log.Println("Hiding window")
 		ForceHide()
 
 	case "SelectPrevious":
@@ -155,7 +157,7 @@ func doKeyPress(action string) {
 			update = true
 			selected = 0
 		} else {
-			toggleWindow()
+			ForceHide()
 		}
 
 	}
@@ -164,6 +166,7 @@ func doKeyPress(action string) {
 func handleKeys(window *glfw.Window) {
 	EscapeKeyCode := 256
 	MacEscapeKeyCode := 53
+	MacF12KeyCode := 301
 
 	window.SetKeyCallback(func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 
@@ -175,7 +178,9 @@ func handleKeys(window *glfw.Window) {
 		}
 		*/
 		if action > 0 {
-
+			if key == glfw.Key(MacF12KeyCode) || key == 109 {
+				doKeyPress("HideWindow")
+			}
 			//ESC
 			if key == glfw.Key(EscapeKeyCode) || key == glfw.Key(MacEscapeKeyCode) {
 				//os.Exit(0)
@@ -198,7 +203,6 @@ func handleKeys(window *glfw.Window) {
 
 			if key == 259 {
 				doKeyPress("Backspace")
-
 			}
 
 			UpdateBuffer(ed, input)
@@ -229,31 +233,64 @@ func popWindow() {
 
 //Hides an existing window.  Window must exist.
 func hideWindow() {
-	log.Println("Hiding window")
-	window.Iconify()
-	window.Hide()
+	if !spawn_subprocess {
+		log.Println("Hiding window")
+		window.Iconify()
+		window.Hide()
+	}
 }
 
 //If the window exists, pop it to the front.  Otherwise create it, then pop it.
 func ForceFront() {
-	if preserveWindow {
-		popWindow()
+	wantWindow = true
+	if spawn_subprocess {
+
+		//Get the executable path for this program
+		exePath, err := os.Executable()
+		if err != nil {
+			log.Fatal(err)
+		}
+		cmd := []string{exePath, "--quit-after", "--spawn=0", "--debug"}
+		log.Println("Spawning subprocess: ", cmd)
+		//Spawning a subprocess cancels the global key watch, so we stop it here
+		DisableEventTap()
+		goof.QCI(cmd)
+		//Spawning a subprocess cancels the global key watch, so we restart it here
+		ReEnableEventTap()
+
+		//Subprocess has closed its window
+		wantWindow = false
+
 	} else {
-		update = true
-		createWin = true
+		if preserveWindow {
+			popWindow()
+		} else {
+			update = true
+
+		}
 	}
 }
 
 //If the window exists, hide it.  Otherwise create it, then hide it.
 //If preserveWindow is not true, the program will quit.
 func ForceHide() {
-	if preserveWindow {
-		log.Println("Hiding window")
-		hideWindow()
+	wantWindow = false
+	if quitAfter {
+		log.Println("Exiting because ForceHide called with quitAfter")
+		os.Exit(0)
+	}
+	if spawn_subprocess {
+
 	} else {
-		log.Println("Exiting")
-		update = true
-		createWin = false
+		if preserveWindow {
+			log.Println("Hiding window")
+			hideWindow()
+		} else {
+			hideWindow()
+			log.Println("Exiting")
+			update = true
+
+		}
 	}
 }
 func toggleWindow() {
@@ -279,13 +316,27 @@ func toggleWindow() {
 func main() {
 	if runtime.GOOS == "darwin" {
 		preserveWindow = false
+		spawn_subprocess = true
+
 	}
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
 	flag.BoolVar(&quitAfter, "quit-after", false, "Quit after command or focus loss")
+	flag.BoolVar(&spawn_subprocess, "spawn", spawn_subprocess, "Spawn a subprocess to actuallly do the popup")
 	flag.Parse()
 
-	go WatchKeys()
+	if spawn_subprocess {
+		wantWindow = false
+		createWin = false
+	}
+
+	fmt.Printf("preserveWindow: %v\nspawn_subprocess:%v\nquitAfter:%v\ncreateWin:%v\nwantWindow:%v\n", preserveWindow, spawn_subprocess, quitAfter, createWin, wantWindow)
+
+	//If we are doing a single shot, we don't want to hook the global key input
+	//We will use the glfw input stream instead
+	if !quitAfter {
+		go WatchKeys()
+	}
 
 	if !doLogs {
 		log.SetFlags(0)
@@ -343,8 +394,13 @@ func createWindow() {
 	if err != nil {
 		panic(err)
 	}
+	//We shouldn't need this check?
+	if !spawn_subprocess {
+		log.Println("Set up key handlers")
+		handleKeys(window)
+	}
 	window.SetPos(mode.Width/10.0, mode.Height/4.0)
-	popWindow()
+	//popWindow()
 	log.Println("Make glfw window context current")
 	window.MakeContextCurrent()
 	log.Println("Allocate memory")
@@ -354,8 +410,6 @@ func createWindow() {
 	form = glim.NewFormatter()
 	ed.ActiveBuffer.Formatter = form
 	SetFont(ed.ActiveBuffer, 16)
-	log.Println("Set up key handlers")
-	handleKeys(window)
 
 	//This should be SetFramebufferSizeCallback, but that doesn't work, so...
 	window.SetSizeCallback(func(w *glfw.Window, width int, height int) {
@@ -416,6 +470,7 @@ func createWindow() {
 
 			if hasFocus == 0 {
 				log.Println("Window lost focus")
+				wantWindow = false
 				createWin = false
 			}
 		}

@@ -1,3 +1,4 @@
+//go:build !VR
 // +build !VR
 
 package main
@@ -266,14 +267,14 @@ func ActiveBufferInsert(gc *GlobalConfig, txt string) {
 		log.Println("Warning: cursor position < 0")
 		gc.ActiveBuffer.Formatter.Cursor = 0
 	}
-	log.Printf("Inserting at %v, length %v\n", gc.ActiveBuffer.Formatter.Cursor, len(txt))
+	//log.Printf("Inserting at %v, length %v\n", gc.ActiveBuffer.Formatter.Cursor, len(txt))
 	gc.ActiveBuffer.Data.Text = fmt.Sprintf("%s%s%s", gc.ActiveBuffer.Data.Text[:ed.ActiveBuffer.Formatter.Cursor], txt, gc.ActiveBuffer.Data.Text[ed.ActiveBuffer.Formatter.Cursor:])
 	gc.ActiveBuffer.Formatter.Cursor = gc.ActiveBuffer.Formatter.Cursor + len(txt)
-	log.Printf("Cursor now %v\n", gc.ActiveBuffer.Formatter.Cursor)
+	//log.Printf("Cursor now %v\n", gc.ActiveBuffer.Formatter.Cursor)
 }
 
 func PageDown(buf *Buffer) {
-	log.Println("Scanning to start of next page from ", buf.Formatter.LastDrawnCharPos)
+	//log.Println("Scanning to start of next page from ", buf.Formatter.LastDrawnCharPos)
 	buf.Formatter.FirstDrawnCharPos = ScanToPrevLine(buf.Data.Text, buf.Formatter.LastDrawnCharPos)
 	buf.Formatter.Cursor = buf.Formatter.FirstDrawnCharPos
 }
@@ -330,7 +331,7 @@ func NextBuffer(gc *GlobalConfig) {
 		gc.ActiveBufferId = 0
 	}
 	gc.ActiveBuffer = gc.BufferList[gc.ActiveBufferId]
-	log.Printf("Next buffer: %v, %v", gc.ActiveBufferId, gc.ActiveBuffer.Data.FileName)
+	//rintf("Next buffer: %v, %v", gc.ActiveBufferId, gc.ActiveBuffer.Data.FileName)
 }
 
 func PreviousBuffer(gc *GlobalConfig) {
@@ -447,9 +448,9 @@ func dispatch(command string, gc *GlobalConfig) {
 }
 
 func PageUp(buf *Buffer, w, h int) {
-	log.Println("Page up")
+	//log.Println("Page up")
 	start := SearchBackPage(buf.Data.Text, buf.Formatter, w, h)
-	log.Println("New start at ", start)
+	//rintln("New start at ", start)
 	buf.Formatter.FirstDrawnCharPos = start
 	buf.Formatter.Cursor = buf.Formatter.FirstDrawnCharPos
 }

@@ -10,8 +10,9 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 
-bool HandleKey(int);
+uint8_t HandleKey(int,int);
 int menu_active = 0;
+ CFMachPortRef      eventTap;
 // This callback will be invoked every time there is a keystroke.
 //
 CGEventRef
@@ -20,18 +21,21 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
 {
     // Paranoid sanity check.
     //if ((type != kCGEventKeyDown) && (type != kCGEventKeyUp))
-    if (type != kCGEventKeyUp)
+    if ((type != kCGEventKeyUp) && (type != kCGEventKeyDown))
         return event;
     
     // The incoming keycode.
     CGKeyCode keycode = (CGKeyCode)CGEventGetIntegerValueField( event, kCGKeyboardEventKeycode);
 
-    //printf("Key: %i\n  Calling HandleKey\n", keycode);
+    printf("C callback Key: %i\n  Calling HandleKey\n  Keydown:%s\n", keycode,type == kCGEventKeyDown? "yes" : "no" );
     
-    if (HandleKey((int) keycode)) {
+    uint8_t ret = HandleKey((int) keycode, type == kCGEventKeyDown? 1 : 0);
+    if (ret>0) {
+        printf("  Golang used key, returning NULL to event tap\n");
         return NULL;
     }
 
+    printf("  Golang did not use key, returning event to event tap\n");
     
     // Set the modified keycode field in the event.
     //CGEventSetIntegerValueField( event, kCGKeyboardEventKeycode, (int64_t)keycode);
@@ -43,7 +47,7 @@ myCGEventCallback(CGEventTapProxy proxy, CGEventType type,
 int
 watchKeys(void)
 {
-    CFMachPortRef      eventTap;
+   
     CGEventMask        eventMask;
     CFRunLoopSourceRef runLoopSource;
     
@@ -71,4 +75,12 @@ watchKeys(void)
     // In a real program, one would have arranged for cleaning up.
     
     exit(0);
+}
+
+void ReEnableEventTap() {
+    CGEventTapEnable(eventTap, true);
+}
+
+void DisableEventTap() {
+    CGEventTapEnable(eventTap, false);
 }

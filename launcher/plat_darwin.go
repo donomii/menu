@@ -1,3 +1,4 @@
+//go:build darwin
 // +build darwin
 
 package main
@@ -12,9 +13,22 @@ import (
 import "C"
 
 func WatchKeys() {
-	//wantWindow = false
-	log.Println("Starting keywatcher")
-	C.watchKeys()
+	if !quitAfter {
+		log.Println("Starting keywatcher")
+		C.watchKeys()
+	} else {
+		log.Println("QuitAfter detected, not starting keywatcher")
+	}
+}
+
+func ReEnableEventTap() {
+	log.Println("Re-enabling event tap")
+	C.ReEnableEventTap()
+}
+
+func DisableEventTap() {
+	log.Println("Disabling event tap")
+	C.DisableEventTap()
 }
 
 func screenScale() int32 { return 2 }
