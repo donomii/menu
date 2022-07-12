@@ -7,7 +7,7 @@ import (
 	
 
 	"github.com/donomii/goof"
-	"github.com/donomii/menu"
+	menu ".."
 )
 
 var Menu *menu.Node

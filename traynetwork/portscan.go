@@ -100,11 +100,15 @@ func UniqueifyHosts() {
 	temp := map[string]*HostService{}
 	for _, v := range Hosts {
 		if v != nil { //Who is putting nils on the host list?
-			if _, ok := temp[v.Ip]; !ok {
-				temp[v.Ip] = v
-			} else {
-				if v.LastSeen.After(temp[v.Ip].LastSeen) {
+
+			//If v.Lastseen is more than an hour ago, remove it
+			if time.Since(v.LastSeen) < time.Hour {
+				if _, ok := temp[v.Ip]; !ok {
 					temp[v.Ip] = v
+				} else {
+					if v.LastSeen.After(temp[v.Ip].LastSeen) {
+						temp[v.Ip] = v
+					}
 				}
 			}
 		}
@@ -114,13 +118,39 @@ func UniqueifyHosts() {
 		out = append(out, v)
 	}
 	sort.Sort(out)
+	log.Printf("Current active hosts:\n")
+	for _, host := range out {
+		log.Printf("%v:%v last seen at %v\n", host.Ip, host.Ports, host.LastSeen)
+	}
 	Hosts = out
 }
-func ScanPublicInfo() {
+func ScanHostPublicInfo(host *HostService) {
+	url := fmt.Sprintf("http://%v:%v/public_info", host.Ip, Configuration.HttpPort)
+	//fmt.Println("Public info url:", url)
+	resp, err := http.Get(url)
+	if err == nil {
+		log.Println("Got response")
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err == nil {
+			log.Println("Got body")
+			var s InfoStruct
+			err := json.Unmarshal(body, &s)
+			if err == nil {
+				log.Printf("Unmarshalled body %v", s)
+				host.Services = s.Services
+				host.Name = s.Name
+				host.LastSeen = time.Now()
+				fmt.Printf("Updated host details for %v, at IP %v\n", host.Name, host.Ip)
+			}
+		}
+	}
+}
 
+func ScanAllHostsPublicInfo() {
 	for _, v := range Hosts {
 		url := fmt.Sprintf("http://%v:%v/public_info", v.Ip, Configuration.HttpPort)
-		fmt.Println("Public info url:", url)
+		//fmt.Println("Public info url:", url)
 		resp, err := http.Get(url)
 		if err == nil {
 			log.Println("Got response")
@@ -131,10 +161,11 @@ func ScanPublicInfo() {
 				var s InfoStruct
 				err := json.Unmarshal(body, &s)
 				if err == nil {
-					fmt.Printf("Unmarshalled body %v", s)
+					log.Printf("Unmarshalled body %v", s)
 					v.Services = s.Services
 					v.Name = s.Name
 					v.LastSeen = time.Now()
+					fmt.Printf("Updated host details for %v, at IP %v\n", v.Name, v.Ip)
 				}
 			}
 		}
@@ -153,10 +184,10 @@ func ScanPort(ip string, port uint, timeout time.Duration) bool {
 		//log.Println(err)
 		if strings.Contains(err.Error(), "open files") || strings.Contains(err.Error(), "requested address") {
 			time.Sleep(timeout)
-			fmt.Println(ip, ":", port, "retry :", err.Error())
+			//fmt.Println("Sequential Scanner: ",ip, ":", port, "retry :", err.Error())
 			ScanPort(ip, port, timeout)
 		} else {
-			fmt.Println(ip, ":", port, "closed :", err.Error())
+			//fmt.Println("Sequential Scanner: ",ip, ":", port, "closed :", err.Error())
 		}
 		return false
 	}
@@ -235,9 +266,10 @@ func CidrHosts(cidr string) ([]string, error) {
 func scanNetwork(cidr string, ports []uint) (out []*HostService) {
 	var wg sync.WaitGroup
 	hosts, _ := CidrHosts(cidr)
+	fmt.Println("Started sequential network scan on", cidr, "for ports", ports)
 	for _, v := range hosts {
 		wg.Add(1)
-		//fmt.Println("Scanning", v)
+
 		ps := &PortScanner{
 			ip:   v,
 			lock: GlobalScanSemaphore,

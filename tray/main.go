@@ -16,9 +16,9 @@ import (
 	//"github.com/donomii/menu"
 
 	menu ".."
+	"../tray/icon"
 	tn "../traynetwork"
 	"github.com/donomii/goof"
-	"github.com/donomii/menu/tray/icon"
 	"github.com/getlantern/systray"
 )
 
@@ -283,7 +283,7 @@ func onReady() {
 				//tn.ArpScan()
 				//tn.ScanC()
 				tn.ScanConfig()
-				tn.ScanPublicInfo()
+				tn.ScanAllHostsPublicInfo()
 				tn.UniqueifyHosts()
 
 			} else {

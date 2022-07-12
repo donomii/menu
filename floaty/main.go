@@ -43,7 +43,6 @@ var wantWindow = true
 var createWin = true
 var glfwInitialized = false
 var quitAfter = true
-var screenScale = int32(2)
 var mouseX, mouseY, lastMouseX, lastMouseY, dragOffSetX, dragOffSetY, globalMouseX, globalMouseY float64
 var dragStartX, dragStartY float64
 var windowPosX, windowPosY int
@@ -464,7 +463,7 @@ func blit(pix []uint8, w, h int) {
 	gl.MatrixMode(gl.MODELVIEW)
 	gl.LoadIdentity()
 
-	gl.Viewport(0, 0, int32(w)*screenScale, int32(h)*screenScale)
+	gl.Viewport(0, 0, int32(w)*screenScale(), int32(h)*screenScale())
 	gl.Ortho(0, 1, 1, 0, 0, -1)
 
 	var texture uint32

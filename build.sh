@@ -5,8 +5,7 @@ mkdir build
 cd build
 rm universal_menu_main.exe universal_menu_command_line_toggle universal_menu_hotkey_monitor universal_launcher_main.exe KeyTap_mac tray_menu.exe
 cd ..
-#go build -ldflags="-s -w" -o build/universal_menu_main.exe
-go build -o build/universal_launcher_main.exe ./glfw
+go build -o build/universal_launcher_main.exe ./launcher
 go build -o build/universal_menu_main.exe ./glfw2
 go build -o build/tray_menu.exe ./tray
 go build -o build/tray_headless.exe ./trayheadless

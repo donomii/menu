@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
 	//"net/url"
 	"strings"
 	"time"
@@ -58,7 +59,7 @@ func LoadConfig() {
 		Hosts = append(Hosts, &HostService{Ip: host, Name: host, Ports: []uint{16002}, LastSeen: time.Now()})
 		log.Printf("Added known peer %v\n", host)
 	}
-	fmt.Printf("Loaded config: %+v\n", Configuration)
+	fmt.Printf("Loaded config from %v: %+v\n", "config/config.json", Configuration)
 }
 
 //go:embed webfiles/*
@@ -98,6 +99,10 @@ func contact(w http.ResponseWriter, req *http.Request) {
 	//Add the remote ip to the list of hosts
 	log.Println("Received contact from:", ip)
 	log.Printf("Received hosts list: %+v\n", data)
+	//Print data
+	for _, host := range data {
+		log.Printf("%v:%v last seen at %v\n", host.Ip, host.Ports, host.LastSeen)
+	}
 
 	Hosts = append(Hosts, data...)
 	UniqueifyHosts()
@@ -130,14 +135,16 @@ func UpdatePeers() {
 			if err != nil {
 				log.Println("Failed to read response body from", FormatHttpIp(host.Ip), "err:", err)
 			} else {
-				log.Println("Received response from", FormatHttpIp(host.Ip), ":", string(body))
+				//log.Println("Received response from", FormatHttpIp(host.Ip), ":", string(body))
 				var h []*HostService
 				err = json.Unmarshal(body, &h)
 				if err != nil {
 					log.Println("Failed to unmarshal response body from", FormatHttpIp(host.Ip), "err:", err)
 				} else {
-					log.Printf("Received hosts list from %v: %+v", FormatHttpIp(host.Ip), h)
+					//log.Printf("Received hosts list from %v: %+v", FormatHttpIp(host.Ip), h)
 					Hosts = append(Hosts, h...)
+					ScanHostPublicInfo(host)
+					Hosts = append(Hosts, host)
 					UniqueifyHosts()
 				}
 
@@ -147,7 +154,7 @@ func UpdatePeers() {
 		}
 
 	}
-	ScanPublicInfo()
+	ScanAllHostsPublicInfo()
 }
 
 func Webserver(apiport, startpageport uint) {
@@ -162,13 +169,59 @@ func Webserver(apiport, startpageport uint) {
 	go http.ListenAndServe(fmt.Sprintf(":%v", apiport), server1)
 
 	server2 := http.NewServeMux()
-	fs := http.FileServer(http.FS(webapp))
-	server2.Handle("/", fs)
+	fs := http.StripPrefix("/static/", http.FileServer(http.FS(webapp)))
+	//server2.HandleFunc("/", hello)
+	server2.Handle("/static/", fs)
 
-	server2.HandleFunc("/webfiles/js/index.js", fillTemplate)
+	server2.HandleFunc("/static/webfiles/bunker/js/index.js", fillTemplate)
+	server2.HandleFunc("/localnetwork", renderLocalNetwork)
 
 	log.Println("Server started on: 0.0.0.0:", startpageport)
 	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%v", startpageport), server2)
+}
+
+func renderLocalNetwork(w http.ResponseWriter, req *http.Request) {
+	w.Write([]byte(networkTemplate(Configuration.KnownPeers)))
+}
+
+func networkTemplate(networkDeets []string) string {
+	//Build hosts display
+	var displayHosts []string
+	for _, host := range Hosts {
+		if host.LastSeen.Add(30 * time.Minute).After(time.Now()) {
+			//Loop over services
+			for _, service := range host.Services {
+				displayHosts = append(displayHosts,
+					fmt.Sprintf(
+						"<li><a href='%v'>%v</a></li>",
+						fmt.Sprintf("%v://%v:%v%v",
+							service.Protocol,
+							FormatHttpIp(host.Ip),
+							service.Port,
+							service.Path),
+						host.Name+" "+service.Name+" "+service.Description))
+			}
+			for _, port := range host.Ports {
+				protocol := "http"
+				if port == 443 {
+					protocol = "https"
+				}
+				displayHosts = append(displayHosts, fmt.Sprintf("<li><a href='%v'>%v</a></li>", fmt.Sprintf("%v://%v:%v/", protocol, FormatHttpIp(host.Ip), port), host.Name))
+
+			}
+		}
+	}
+	return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>UMH</title>
+  </head>
+  <body>
+<h1>Local Network</h1>` + strings.Join(displayHosts, "") + `
+ </body>
+</html>`
+
 }
 
 func landingTemplate() string {
@@ -189,7 +242,7 @@ Web service interface to UMH menu.
 }
 
 func fillTemplate(w http.ResponseWriter, req *http.Request) {
-	base, err := webapp.ReadFile("webfiles/js/index.js")
+	base, err := webapp.ReadFile("webfiles/bunker/js/index.js")
 	if err != nil {
 		panic(err)
 	}
@@ -263,7 +316,7 @@ func MakeNetworkPcMenu(hosts []*HostService) (*menu.Node, *menu.Node) {
 				}
 				h.SubNodes = append(h.SubNodes, menu.MakeNodeLong(fmt.Sprintf("%v(%v)", PortMap()[int(port)], port), nil, fmt.Sprintf("%v://%v:%v/", protocol, FormatHttpIp(host.Ip), port), ""))
 			}
-			fmt.Printf("Processing services: %+v\n", host.Services)
+			//fmt.Printf("Processing services: %+v\n", host.Services)
 			for _, s := range host.Services {
 				ip := host.Ip
 				if s.Ip != "" {
