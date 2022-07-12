@@ -56,6 +56,8 @@ var command = []string{"osascript", "-e", "tell app \"Terminal\" to do script \"
 var fontSize = float64(16)
 var captureOutput = false
 
+var invalidCoords = true
+
 func Seq(min, max int) []int {
 	size := max - min + 1
 	if size < 1 {
@@ -225,12 +227,29 @@ func handleKeys(window *glfw.Window) {
 	})
 }
 
+func handleFocus(window *glfw.Window) {
+
+	window.SetFocusCallback(func(w *glfw.Window, focused bool) {
+		log.Printf("Focus changed to %v\n", focused)
+		if !focused {
+			invalidCoords = true
+			log.Println("Marked coords as invalid")
+		}
+	})
+}
 func handleMouse(window *glfw.Window) {
 
 	window.SetMouseButtonCallback(func(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mods glfw.ModifierKey) {
+
 		if button == glfw.MouseButtonLeft {
 			if action == glfw.Press {
 				log.Println("Mouse button pressed")
+				if invalidCoords {
+					mouseX, mouseY = window.GetCursorPos()
+					lastMouseX = mouseX
+					lastMouseY = mouseY
+
+				}
 				mouseDrag = true
 
 				dragStartX = globalMouseX
@@ -264,20 +283,26 @@ func handleMouseMove(window *glfw.Window) {
 
 	window.SetCursorPosCallback(func(w *glfw.Window, xpos float64, ypos float64) {
 		//fmt.Printf("Mouse moved to %v,%v\n", xpos, ypos)
-		lastMouseX = mouseX
-		lastMouseY = mouseY
+		if invalidCoords {
+			lastMouseX = xpos
+			lastMouseY = ypos
+		} else {
+			lastMouseX = mouseX
+			lastMouseY = mouseY
+		}
 		mouseX = xpos
 		mouseY = ypos
 		X, Y := window.GetPos()
 		globalMouseX = xpos - float64(X)
 		globalMouseY = ypos - float64(Y)
 
-		//log.Printf("Mouse moved to %v,%v\n", mouseX, mouseY)
-		if mouseDrag {
+		log.Printf("Mouse moved to %v,%v, last X,Y: %v,%v\n", mouseX, mouseY, lastMouseX, lastMouseY)
+		if mouseDrag && !invalidCoords {
 
 			deltaX := globalMouseX - dragStartX
 			deltaY := globalMouseY - dragStartY
 			log.Printf("deltaX: %v, deltaY: %v, mouseX: %v, mouseY: %v, dragStartX: %v, dragStartY: %v, dragOffSetX: %v, dragOffSetY: %v\n", deltaX, deltaY, mouseX, mouseY, dragStartX, dragStartY, dragOffSetX, dragOffSetY)
+			log.Printf("globalMouseX: %v, globalMouseY: %v\n", globalMouseX, globalMouseY)
 			if (deltaX > 10) || (deltaX < -10) || (deltaY > 10) || (deltaY < -10) {
 				windowPosX += int(mouseX - dragOffSetX)
 				windowPosY += int(mouseY - dragOffSetY)
@@ -286,13 +311,16 @@ func handleMouseMove(window *glfw.Window) {
 			}
 		}
 
+		invalidCoords = false
+		log.Println("Marked coords as valid")
+
 	})
 }
 func main() {
 
 	var doLogs bool
 	flag.BoolVar(&doLogs, "debug", false, "Display logging information")
-	flag.BoolVar(&quitAfter, "quit-after", false, "Quit after command or focus loss")
+	flag.BoolVar(&quitAfter, "quit-after", quitAfter, "Quit after command or focus loss")
 	flag.BoolVar(&captureOutput, "capture-output", false, "Capture output of command")
 	flag.StringVar(&title, "title", title, "Initial text")
 	flag.Float64Var(&fontSize, "font-size", fontSize, "Font size")
@@ -367,6 +395,7 @@ func createWindow() {
 	handleKeys(window)
 	handleMouse(window)
 	handleMouseMove(window)
+	handleFocus(window)
 
 	window.SetPos(mode.Width/10.0, mode.Height/4.0)
 	//popWindow()
